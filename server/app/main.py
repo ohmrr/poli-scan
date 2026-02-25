@@ -25,6 +25,13 @@ def root():
 def get_persons(client_name: str):
     return LegistarClient(client_name).get_persons()
 
+# Use "sonoma-county" for client_name
+# - Pulls Matters from Legistar.
+#- Returns up to <limit> items as JSON.
+@app.get("/agendas/{client_name}/{limit}")
+def get_agendas(client_name: str,limit: int):
+    return LegistarClient(client_name).get_agendas(limit)
+
 
 # Use "sonoma-county" for client name
 # Use 2021 for year
