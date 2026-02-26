@@ -2,6 +2,7 @@ import csv
 from dataclasses import dataclass, field
 from typing import List
 
+
 @dataclass
 class OfficialRecord:
     last_name: str
@@ -13,9 +14,11 @@ class OfficialRecord:
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
-    
+
+
 def normalize_headers(headers: list[str]) -> list[str]:
     return [h.replace("\n", " ").strip() for h in headers]
+
 
 def load_form700_csv(file_path: str) -> List[OfficialRecord]:
     officials: dict[str, OfficialRecord] = {}
@@ -38,14 +41,10 @@ def load_form700_csv(file_path: str) -> List[OfficialRecord]:
 
             if key not in officials:
                 officials[key] = OfficialRecord(
-                    last_name=last,
-                    first_name=first,
-                    agency=agency,
-                    position=position
+                    last_name=last, first_name=first, agency=agency, position=position
                 )
 
             if holding:
                 officials[key].holdings.append(holding)
-                
+
     return list(officials.values())
-            

@@ -3,7 +3,10 @@ from fastapi import APIRouter
 # For getting officials from internal db
 # WIP
 
-router = APIRouter(prefix="/officials", tags=["/Officials"])
+router = APIRouter(
+    prefix="/officials",
+    tags=["/Officials"],
+)
 
 
 @router.get("/")

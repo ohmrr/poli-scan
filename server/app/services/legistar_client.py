@@ -1,6 +1,8 @@
 from turtle import title
+
 import requests
-from server.app.models.legistar import Person, Agenda
+
+from server.app.models.legistar import Agenda, Person
 
 LEGISTAR_BASE_URL = "https://webapi.legistar.com/v1"
 
@@ -39,7 +41,7 @@ class LegistarClient:
         for person in raw:
             # Ignore inactive persons.
             # Might need to change this if we need to look at agendas were
-            # previous employees participated in 
+            # previous employees participated in
             if person.get("PersonActiveFlag") != 1:
                 continue
 
@@ -59,20 +61,22 @@ class LegistarClient:
 
         return people
 
-    def get_agendas(self,limit: int) -> list[Agenda]:
+    def get_agendas(self, limit: int) -> list[Agenda]:
         # GET https://webapi.legistar.com/v1/{client}/Matters
         # params:
         #   $top = how many results to return
         #   $orderby = sort by MatterId (highest first, so newest-ish first)
-        raw = self._fetch("Matters", params = {"$top":limit,"$orderby": "MatterId desc"})
+        raw = self._fetch(
+            "Matters", params={"$top": limit, "$orderby": "MatterId desc"}
+        )
 
-        agendas = [] # this will store the cleaned Agenda objects we return
+        agendas = []  # this will store the cleaned Agenda objects we return
         for matter in raw:
             # Only keep items that are ready to be put on an agenda
             # If it is not "Agenda Ready", skip it
             if matter.get("MatterStatusName") != "Agenda Ready":
-                continue 
-            # Convert the raw Legistar dictionary into our Agenda model 
+                continue
+            # Convert the raw Legistar dictionary into our Agenda model
             # (This usually picks out fields like MatterId, MatterFile, MatterTitle, dates, etc.)
             agendas.append(Agenda.from_legistar(matter))
         # Return the list of Agenda objects

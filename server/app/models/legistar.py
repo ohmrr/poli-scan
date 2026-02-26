@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class Person(BaseModel):
@@ -16,6 +17,8 @@ class Person(BaseModel):
             last_name=data.get("PersonLastName"),
             email=data.get("PersonEmail"),
         )
+
+
 class Agenda(BaseModel):
     id: int
     title: Optional[str] = None
