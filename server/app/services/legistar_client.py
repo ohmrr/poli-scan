@@ -1,5 +1,3 @@
-from turtle import title
-
 import requests
 
 from server.app.models.legistar import Agenda, Person
