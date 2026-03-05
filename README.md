@@ -11,7 +11,7 @@ cd poli-scan
 
 ### 📋 Prerequisites
 
-- Install Python version `3.12.12`
+- Install **Python** version `3.12.12`
 
 ### 💾 Setting up Virtual Environment
 
@@ -69,8 +69,60 @@ From the root directory `poli-scan/`, run:
 uvicorn server.app.main:app --reload
 ```
 
-The server will now be accessible at `http://127.0.0.1:8000/` to see:
+The server will now be accessible at `http://127.0.0.1:8000/`
 
-```json
-{ "message": "App is running successfully!" }
+You can open Swagger API documentation by going to `http://127.0.0.1:8000/docs`, which will help with testing out the API.
+
+## 🌐 Frontend Setup
+
+### 📋 Prerequisites
+
+- Install [Node.js](https://nodejs.org/en/download), you can get the latest LTS version which is `v24.14.0`
+
+Installation varies depending on what device you're using. See the link above for more details.
+
+Following installation, you can confirm that it is properly installed and set up by using:
+
+```sh
+node --version
+npm --version
 ```
+
+### 📦 Installing Dependencies
+
+Once you have `node` and `npm` set up, you can move to the `website` directory and install all the dependencies needed for the project.
+
+```sh
+cd website
+npm install
+```
+
+#### ⬇️ Adding New Dependencies
+
+Whenever you need to install a new package, you can use `npm` to save the package and its version to `website/package.json`.
+
+For production packages, such as `tailwindcss`, you can run:
+
+```sh
+npm install [package]
+```
+
+For development packages, such as `prettier`, you can instead run:
+
+```sh
+npm install -D [package]
+```
+
+*Note: Whenever you install packages, ensure that you are working in the `website` directory*
+
+### ▶️ Running the Website
+
+With the project configured, you can run the following:
+
+```sh
+npm run dev
+```
+
+This will spin up a development server with the website that will automatically update with any changes.
+
+The development site will now be accessible at `http://localhost:5173/`
