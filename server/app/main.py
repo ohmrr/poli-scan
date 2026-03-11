@@ -26,13 +26,12 @@ def root():
 def get_persons(client_name: str):
     return LegistarClient(client_name).get_persons()
 
-
 # Use "sonoma-county" for client_name
-# - Pulls Matters from Legistar.
+# - Pulls Scrapes Meetings with Matter and Parsed Summaries from Legistar.
 # - Returns up to <limit> items as JSON.
-@app.get("/agendas/{client_name}/{limit}")
-def get_agendas(client_name: str, limit: int):
-    return LegistarClient(client_name).get_agendas(limit)
+@app.get("/scrape/{client_name}/{limit}")
+def scrape(client_name: str, limit: int):
+    return LegistarClient(client_name).scrape(limit)
 
 
 # Use "sonoma-county" for client name
