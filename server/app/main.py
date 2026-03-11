@@ -1,15 +1,30 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
 
 from server.app.services.form700_parser import load_form700_csv
 from server.app.services.legistar_client import LegistarClient
+
+from server.app.services.ingestion import ingest_form700, ingest_legistar
+
+from server.app.api import jurisdictions, officials
+
+from server.app.db.connection import get_db
+from server.app.db.init_db import init_db
 
 app = FastAPI(
     title="FPPC Conflict of Interest Identifier",
     version="0.0.1",
 )
 
-# After getting the server running, open this url in your browser
-# This will open up Swagger, which can be used to showcase the API
+
+@app.on_event("startup")
+def startup():
+    init_db()
+
+
+app.include_router(jurisdictions.router)
+app.include_router(officials.router)
+
 print("API Documentation - http://127.0.0.1:8000/docs")
 
 
@@ -18,25 +33,32 @@ def root():
     return {"message": "FPPC API is running successfully!"}
 
 
-# Below are the demo endpoints
+@app.post("/ingest/form700/{client_name}/{year}")
+def ingest_form700_endpoint(
+    client_name: str,
+    year: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Parse the Form 700 CSV for a jurisdiction+year and store
+    officials + holdings in the database.
+
+    Expects a file at:  ./server/app/data/{client_name}-{year}.csv
+    """
+    csv_path = f"./server/app/data/{client_name}-{year}.csv"
+    return ingest_form700(
+        db, jurisdiction_slug=client_name, csv_path=csv_path, year=year
+    )
 
 
-# Use "sonoma-county" for client_name
-@app.get("/persons/{client_name}")
-def get_persons(client_name: str):
-    return LegistarClient(client_name).get_persons()
-
-
-# Use "sonoma-county" for client_name
-# - Pulls Scrapes Meetings with Matter and Parsed Summaries from Legistar.
-# - Returns up to <limit> items as JSON.
-@app.get("/scrape/{client_name}/{limit}")
-def scrape(client_name: str, limit: int):
-    return LegistarClient(client_name).scrape(limit)
-
-
-# Use "sonoma-county" for client name
-# Use 2021 for year
-@app.get("/officials/{client_name}/{year}")
-def get_officials(client_name: str, year: int):
-    return load_form700_csv(f"./server/app/data/{client_name}-{year}.csv")
+@app.post("/ingest/legistar/{client_name}")
+def ingest_legistar_endpoint(
+    client_name: str,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+):
+    """
+    Scrape up to `limit` final events from Legistar and store
+    events + agenda items in the database.
+    """
+    return ingest_legistar(db, jurisdiction_slug=client_name, limit=limit)

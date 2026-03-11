@@ -34,13 +34,13 @@ class LegistarClient:
         rdata = requests.get(self._fetch("Persons"), params=None, timeout=10)
         raw = rdata.json()
 
-        admin_account_names = [
+        admin_account_names = {
             "Granicus",
             "View",
             "Legistar",
             "System",
             "Administrator",
-        ]
+        }
 
         people = []
         for person in raw:
