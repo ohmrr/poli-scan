@@ -26,6 +26,7 @@ def root():
 def get_persons(client_name: str):
     return LegistarClient(client_name).get_persons()
 
+
 # Use "sonoma-county" for client_name
 # - Pulls Scrapes Meetings with Matter and Parsed Summaries from Legistar.
 # - Returns up to <limit> items as JSON.

@@ -31,7 +31,7 @@ class ScrapedMeetings(BaseModel):
     SummaryReport: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data:dict) -> "ScrapedMeetings":
+    def from_dict(cls, data: dict) -> "ScrapedMeetings":
         return cls(
             Jurisdiction=data.get("Jurisdiction"),
             EventId=data.get("EventId"),
