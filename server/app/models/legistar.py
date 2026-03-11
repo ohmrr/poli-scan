@@ -19,17 +19,27 @@ class Person(BaseModel):
         )
 
 
-class Agenda(BaseModel):
-    id: int
-    title: Optional[str] = None
-    fileDate: Optional[str] = None
-    status: Optional[str] = None
+class ScrapedMeetings(BaseModel):
+    Jurisdiction: Optional[str] = None
+    EventId: Optional[int] = None
+    EventDate: Optional[str] = None
+    BodyName: Optional[str] = None
+    MatterId: Optional[int] = None
+    MatterType: Optional[str] = None
+    Title: Optional[str] = None
+    Attachments: Optional[list[dict]] = None
+    SummaryReport: Optional[str] = None
 
     @classmethod
-    def from_legistar(cls, data: dict) -> "Agenda":
+    def from_dict(cls, data:dict) -> "ScrapedMeetings":
         return cls(
-            id=data.get("MatterId"),
-            title=data.get("MatterTitle"),
-            fileDate=data.get("MatterFile"),
-            status=data.get("MatterStatusName"),
+            Jurisdiction=data.get("Jurisdiction"),
+            EventId=data.get("EventId"),
+            EventDate=data.get("EventDate"),
+            BodyName=data.get("BodyName"),
+            MatterId=data.get("MatterId"),
+            MatterType=data.get("MatterType"),
+            Title=data.get("Title"),
+            Attachments=data.get("Attachments"),
+            SummaryReport=data.get("SummaryReport"),
         )
