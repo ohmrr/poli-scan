@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from server.app.db.models import Jurisdiction, Official, Holding
+from server.app.db.models import Jurisdiction, Official, Holding, Event, AgendaItem
 
 # Jurisdictions
 
@@ -120,3 +120,66 @@ def add_holding_if_missing(
         db.refresh(holding_record)
 
     return holding_record
+
+
+# Events
+
+
+def get_or_create_event(
+    db: Session,
+    jurisdiction_id: int,
+    legistar_event_id: int | None,
+    event_date: str | None,
+    body_name: str | None,
+) -> Event:
+    record = (
+        db.query(Event)
+        .filter_by(jurisdiction_id=jurisdiction_id, legistar_event_id=legistar_event_id)
+        .first()
+    )
+    if record is None:
+        record = Event(
+            jurisdiction_id=jurisdiction_id,
+            legistar_event_id=legistar_event_id,
+            event_date=event_date,
+            body_name=body_name,
+        )
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+    return record
+
+
+# Agenda
+
+
+def get_or_create_agenda_item(
+    db: Session,
+    event_id: int,
+    matter_id: int | None,
+    matter_type: str | None,
+    title: str | None,
+    summary_report: str | None,
+) -> AgendaItem:
+    record = (
+        db.query(AgendaItem)
+        .filter_by(event_id=event_id, legistar_matter_id=matter_id)
+        .first()
+    )
+    if record is None:
+        record = AgendaItem(
+            event_id=event_id,
+            legistar_matter_id=matter_id,
+            matter_type=matter_type,
+            title=title,
+            summary_report=summary_report,
+        )
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+    else:
+        if summary_report and not record.summary_report:
+            record.summary_report = summary_report
+            db.commit()
+            db.refresh(record)
+    return record

@@ -6,7 +6,7 @@ from server.app.services.legistar_client import LegistarClient
 
 from server.app.services.ingestion import ingest_form700, ingest_legistar
 
-from server.app.api import jurisdictions, officials
+from server.app.api import jurisdictions, officials, events, agenda_items
 
 from server.app.db.connection import get_db
 from server.app.db.init_db import init_db
@@ -24,6 +24,8 @@ def startup():
 
 app.include_router(jurisdictions.router)
 app.include_router(officials.router)
+app.include_router(events.router)
+app.include_router(agenda_items.router)
 
 print("API Documentation - http://127.0.0.1:8000/docs")
 

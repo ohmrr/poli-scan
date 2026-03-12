@@ -29,9 +29,9 @@ class Jurisdiction(Base):
         back_populates="jurisdiction", cascade="all, delete-orphan"
     )
 
-    # events: Mapped[list["Event"]] = relationship(
-    #     back_populates="jurisdiction", cascade="all, delete-orphan"
-    # )
+    events: Mapped[list["Event"]] = relationship(
+        back_populates="jurisdiction", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Jurisdiction slug={self.slug!r}>"
@@ -84,3 +84,45 @@ class Holding(Base):
 
     def __repr__(self) -> str:
         return f"<Holding {self.entity_name!r} year={self.year}>"
+
+
+class Event(Base):
+    __tablename__ = "events"
+    __table_args__ = (UniqueConstraint("jurisdiction_id", "legistar_event_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    jurisdiction_id: Mapped[int] = mapped_column(
+        ForeignKey("jurisdictions.id", ondelete="CASCADE"), nullable=False
+    )
+    legistar_event_id: Mapped[int | None] = mapped_column(Integer)
+    body_name: Mapped[str | None] = mapped_column(String(100))
+    event_date: Mapped[str | None] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    jurisdiction: Mapped["Jurisdiction"] = relationship(back_populates="events")
+    agenda_items: Mapped[list["AgendaItem"]] = relationship(
+        back_populates="event", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<Event legistar_event_id={self.legistar_event_id!r} date={self.event_date!r}>"
+
+
+class AgendaItem(Base):
+    __tablename__ = "agenda_items"
+    __table_args__ = (UniqueConstraint("event_id", "legistar_matter_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(
+        ForeignKey("events.id", ondelete="CASCADE"), nullable=False
+    )
+    legistar_matter_id: Mapped[int | None] = mapped_column(Integer)
+    matter_type: Mapped[str | None] = mapped_column(String(100))
+    title: Mapped[str | None] = mapped_column(Text)
+    summary_report: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    event: Mapped["Event"] = relationship(back_populates="agenda_items")
+
+    def __repr__(self) -> str:
+        return f"<AgendaItem matter_id={self.legistar_matter_id!r} type={self.matter_type!r}>"
