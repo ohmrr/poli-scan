@@ -61,6 +61,18 @@ Note that whenever you add a new package, update `requirement.txt`:
 pip freeze > server/requirements.txt
 ```
 
+### 🔑 Adding Database Credentials
+
+In `/server`, make a new file called `.env` and copy over the contents of `.env.example`. For the actual environment variable values themselves, you can reach out to Omar and ask for them.
+
+```sh
+TURSO_DATABASE_URL=libsql://{db-name}-{owner-name}.{server}.turso.io
+TURSO_AUTH_TOKEN=
+```
+
+**NOTE**: You should never expose the contents of `.env` for any reason. Do not include them in source control and push them to GitHub, or copy and paste them to ChatGPT or any other LLM. Please keep them secure and private.
+
+
 ### ▶️ Running the FastAPI Server
 
 From the root directory `poli-scan/`, run:
@@ -90,11 +102,18 @@ npm --version
 
 ### 📦 Installing Dependencies
 
-Once you have `node` and `npm` set up, you can move to the `website` directory and install all the dependencies needed for the project.
+Once you have `node` set up, you can move to the `website` directory and install all the dependencies needed for the project.
+
+First, enable corepack and install the `pnpm` package manager:
+
+```sh
+corepack enable
+corepack install -g pnpm
+```
 
 ```sh
 cd website
-npm install
+pnpm install
 ```
 
 #### ⬇️ Adding New Dependencies
@@ -104,13 +123,13 @@ Whenever you need to install a new package, you can use `npm` to save the packag
 For production packages, such as `tailwindcss`, you can run:
 
 ```sh
-npm install [package]
+pnpm install [package]
 ```
 
 For development packages, such as `prettier`, you can instead run:
 
 ```sh
-npm install -D [package]
+pnpm install --dev [package]
 ```
 
 *Note: Whenever you install packages, ensure that you are working in the `website` directory*
@@ -120,7 +139,7 @@ npm install -D [package]
 With the project configured, you can run the following:
 
 ```sh
-npm run dev
+pnpm dev
 ```
 
 This will spin up a development server with the website that will automatically update with any changes.
