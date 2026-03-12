@@ -33,13 +33,13 @@ class AgendaItem(BaseModel):
     @classmethod
     def from_dict(cls, data: dict) -> "AgendaItem":
         return cls(
-            jurisdiction=data.get("Jurisdiction"),
-            event_id=data.get("EventId"),
-            event_date=data.get("EventDate"),
-            body_name=data.get("BodyName"),
-            matter_id=data.get("MatterId"),
-            matter_type=data.get("MatterType"),
-            title=data.get("Title"),
-            attachments=data.get("Attachments"),
-            summary_report=data.get("SummaryReport"),
+            jurisdiction=data.get("jurisdiction"),
+            event_id=data.get("event_id"),
+            event_date=data.get("event_date"),
+            body_name=data.get("body_name"),
+            matter_id=data.get("matter_id"),
+            matter_type=data.get("matter_type"),
+            title=data.get("title"),
+            attachments=data.get("attachments"),
+            summary_report=data.get("summary_report"),
         )

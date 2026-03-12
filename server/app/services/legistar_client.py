@@ -9,9 +9,18 @@ FETCH_MATTER_TYPES = {
     "Consent Calendar Item",
     "Regular Calendar Item",
 }
+
 SUMMARY_TYPES = {
     "summary report",
     "summary",
+}
+
+ADMIN_ACCOUNT_NAMES = {
+    "Granicus",
+    "View",
+    "Legistar",
+    "System",
+    "Administrator",
 }
 
 
@@ -25,107 +34,77 @@ class LegistarClient:
         self.client = client
         self.base = f"{LEGISTAR_BASE_URL}/{client}"
 
-    def _fetch(self, endpoint: str, params: dict = None):
+    def _fetch(self, endpoint: str, params: dict = None) -> list | dict:
         url = f"{self.base}/{endpoint}"
-        return url
+
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+
+        return response.json()
 
     def get_persons(self) -> list[Person]:
-        # GET https://webapi.legistar.com/v1/{client}/Persons
-        rdata = requests.get(self._fetch("Persons"), params=None, timeout=10)
-        raw = rdata.json()
-
-        admin_account_names = {
-            "Granicus",
-            "View",
-            "Legistar",
-            "System",
-            "Administrator",
-        }
+        try:
+            raw = self._fetch("Persons")
+        except requests.RequestException as e:
+            print(f"Couldn't fetch persons for '{self.client}': {e}")
+            return []
 
         people = []
         for person in raw:
-            # Ignore inactive persons.
-            # Might need to change this if we need to look at agendas were
-            # previous employees participated in
             if person.get("PersonActiveFlag") != 1:
                 continue
 
             first_name = person.get("PersonFirstName") or ""
-            last_name = person.get("PersonlastName") or ""
+            last_name = person.get("PersonLastName") or ""
             email = person.get("PersonEmail") or ""
 
-            # Remove Legistar & Granicus Admin/Test accounts
-            if first_name in admin_account_names or last_name in admin_account_names:
+            if first_name in ADMIN_ACCOUNT_NAMES or last_name in ADMIN_ACCOUNT_NAMES:
                 continue
 
             if email.endswith("granicus.com"):
                 continue
 
-            # Transform data to match Person model, getting rid of unnecessary data
             people.append(Person.from_legistar(person))
 
         return people
 
     def get_final_events(self, limit: int) -> list[dict]:
         params = {"$top": limit, "$orderby": "EventId desc", "$skip": 0}
-        r = self._fetch("Events")
 
         try:
-            response = requests.get(r, params=params, timeout=10)
-            response.raise_for_status()
-            d = response.json()
+            data = self._fetch("Events", params=params)
         except requests.RequestException as e:
             print(f"Couldn't fetch events for '{self.client}': {e}")
             return []
 
-        final = []
-
-        for m in d:
-            if m.get("EventAgendaStatusName") == "Final":
-                final.append(m)
-
-        return final
+        return [m for m in data if m.get("EventAgendaStatusName") == "Final"]
 
     def get_event_items(self, event_id: int) -> list[dict]:
-        url = {self._fetch(f"Events/{event_id}/EventItems")}
-
         try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-
-            return response.json()
+            return self._fetch(f"Events/{event_id}/EventItems")
         except requests.RequestException as e:
-            print(f"Couldn't fetch events items for '{self.client}': {e}")
-            return []
+            print(f"Couldn't fetch event items for '{self.client}': {e}")
 
     def get_attachments(self, matter_id: int) -> list[dict]:
-        url = self._fetch(f"Matters/{matter_id}/Attachments")
-
         try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            rdata = response.json()
+            raw = self._fetch(f"Matters/{matter_id}/Attachments")
         except requests.RequestException as e:
             print(f"Couldn't fetch attachments for '{self.client}': {e}")
             return []
 
-        attachments = []
-
-        for a in rdata:
-            name = a.get("MatterAttachmentName", "")
-            link = a.get("MatterAttachmentHyperlink", "")
-
-            if name and link:
-                attachments.append({"name": name, "link": link})
-
-        return attachments
+        return [
+            {"name": a["MatterAttachmentName"], "link": a["MatterAttachmentHyperlink"]}
+            for a in raw
+            if a.get("MatterAttachmentName") and a.get("MatterAttachmentHyperlink")
+        ]
 
     def find_summary_report(self, attachments: list[dict]) -> dict | None:
         for a in attachments:
-            lowerName = a.get("name", "").lower()
-            for k in SUMMARY_TYPES:
-                if k in lowerName:
-                    return a
+            lower_name = a.get("name", "").lower()
+
+            if any(k in lower_name for k in SUMMARY_TYPES):
+                return a
+
         return None
 
     def pdf_extract(self, url: str) -> str | None:
@@ -133,31 +112,22 @@ class LegistarClient:
             response = requests.get(url, timeout=20)
             response.raise_for_status()
         except requests.RequestException as e:
-            print(f"Couldn't download attachments:{e}")
+            print(f"Couldn't download attachment: {e}")
             return None
 
         try:
-            rdata = io.BytesIO(response.content)
-
-            with pdfplumber.open(rdata) as pdf:
-                pages = []
-
+            pages = []
+            with pdfplumber.open(io.BytesIO(response.content)) as pdf:
                 for page in pdf.pages:
                     text = page.extract_text()
-
                     if text:
                         pages.append(text)
-
-                if pages:
-                    return "\n".join(pages)
-                else:
-                    return None
+            return "\n".join(pages) if pages else None
         except Exception as e:
-            print(f"Couldn't extract pdf:{e}")
-
+            print(f"Couldn't extract pdf: {e}")
             return None
 
-    def scrape(self, limit: int) -> list[dict]:
+    def scrape(self, limit: int) -> list[AgendaItem]:
         events = self.get_final_events(limit)
 
         if not events:
@@ -167,22 +137,18 @@ class LegistarClient:
         results = []
 
         for e in events:
-            eventId = e["EventId"]
-            eventDate = e.get("EventDate", "")
-            eventBody = e.get("EventBodyName", "")
+            event_id = e["EventId"]
+            event_date = e.get("EventDate", "")
+            event_body = e.get("EventBodyName", "")
 
             print(
-                f"\nEventId: {eventId} | EventDate: {eventDate} | EventBody: {eventBody}"
+                f"\nEventId: {event_id} | EventDate: {event_date} | EventBody: {event_body}"
             )
 
-            items = self.get_event_items(eventId)
-            agendas = []
+            items = self.get_event_items(event_id)
+            agendas = [a for a in items if a.get("EventItemMatterId") is not None]
 
-            for a in items:
-                if a.get("EventItemMatterId") is not None:
-                    agendas.append(a)
-
-            print(f"{len(agendas)} agendas items found")
+            print(f"{len(agendas)} agenda items found")
 
             for i in agendas:
                 matter_id = i.get("EventItemMatterId")
@@ -191,9 +157,9 @@ class LegistarClient:
 
                 report = {
                     "jurisdiction": self.client,
-                    "event_id": eventId,
-                    "event_date": eventDate,
-                    "body_name": eventBody,
+                    "event_id": event_id,
+                    "event_date": event_date,
+                    "body_name": event_body,
                     "matter_id": matter_id,
                     "matter_type": matter_type,
                     "title": title,
@@ -217,9 +183,9 @@ class LegistarClient:
                     results.append(AgendaItem.from_dict(report))
                     continue
 
-                pdfText = self.pdf_extract(summary["link"])
-                if pdfText:
-                    report["summary_report"] = pdfText
+                pdf_text = self.pdf_extract(summary["link"])
+                if pdf_text:
+                    report["summary_report"] = pdf_text
                 else:
                     print("Couldn't extract text from Summary Report")
 
