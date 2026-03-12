@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from server.app.db import crud
 from server.app.db.connection import get_db
 from server.app.db.models import Official
-from server.app.db import crud
 
 router = APIRouter(
     prefix="/officials",
@@ -20,7 +21,7 @@ def search_officials(
     db: Session = Depends(get_db),
 ):
     query = db.query(Official).filter(
-        Official.first_name.ilike(f"%{name}%") | Official.last_name.ilike(f"%{name}%")
+        func.concat(Official.first_name, " ", Official.last_name).ilike(f"%{name}%")
     )
 
     if jurisdiction_slug:
@@ -53,7 +54,9 @@ def get_official(official_id: int, db: Session = Depends(get_db)):
     official = crud.get_official_by_id(db, official_id)
 
     if not official:
-        raise HTTPException(status_code=404, detail=f"Official with id '{official_id}' not found.")
+        raise HTTPException(
+            status_code=404, detail=f"Official with id '{official_id}' not found."
+        )
 
     return {
         "id": official.id,
