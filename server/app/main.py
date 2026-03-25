@@ -56,11 +56,21 @@ def ingest_form700_endpoint(
 @app.post("/ingest/legistar/{client_name}")
 def ingest_legistar_endpoint(
     client_name: str,
-    limit: int = 10,
+    limit: int | None = 1,
+    start_date: str | None = None,
+    end_date: str | None = None,
     db: Session = Depends(get_db),
 ):
     """
     Scrape up to `limit` final events from Legistar and store
     events + agenda items in the database.
+    Date filters:
+    - start_date: YYYY-MM-DD
+    - end_date: YYYY-MM-DD
     """
-    return ingest_legistar(db, jurisdiction_slug=client_name, limit=limit)
+    return ingest_legistar(
+        db,
+        jurisdiction_slug=client_name, 
+        limit=limit, 
+        start_date=start_date, 
+        end_date=end_date)

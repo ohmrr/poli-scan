@@ -68,9 +68,20 @@ class LegistarClient:
 
         return people
 
-    def get_final_events(self, limit: int) -> list[dict]:
-        params = {"$top": limit, "$orderby": "EventId desc", "$skip": 0}
-
+    def get_final_events(self, 
+                         limit: int | None = None, 
+                         start_date: str | None = None, 
+                         end_date: str | None = None,
+                         ) -> list[dict]:
+        params = {"$orderby": "EventId desc"}
+        if limit is not None:
+            params["$top"] = limit
+        if start_date and end_date:
+            params["$filter"] = f"EventDate ge datetime'{start_date}' and EventDate le datetime'{end_date}'"
+        elif start_date:
+            params["$filter"] = f"EventDate ge datetime'{start_date}'"
+        elif end_date:
+            params["$filter"] = f"EventDate le datetime'{end_date}'"
         try:
             data = self._fetch("Events", params=params)
         except requests.RequestException as e:
@@ -84,6 +95,7 @@ class LegistarClient:
             return self._fetch(f"Events/{event_id}/EventItems")
         except requests.RequestException as e:
             print(f"Couldn't fetch event items for '{self.client}': {e}")
+            return []
 
     def get_attachments(self, matter_id: int) -> list[dict]:
         try:
@@ -127,8 +139,10 @@ class LegistarClient:
             print(f"Couldn't extract pdf: {e}")
             return None
 
-    def scrape(self, limit: int) -> list[AgendaItem]:
-        events = self.get_final_events(limit)
+    def scrape(self, limit: int | None = None, start_date: str | None = None, end_date: str | None = None) -> list[AgendaItem]:
+        events = self.get_final_events(limit, 
+                                       start_date, 
+                                       end_date)
 
         if not events:
             print(f"No events found for '{self.client}'")

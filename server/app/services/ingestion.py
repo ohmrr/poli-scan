@@ -41,7 +41,7 @@ def ingest_form700(
     }
 
 
-def ingest_legistar(db: Session, jurisdiction_slug: str, limit: int = 10) -> dict:
+def ingest_legistar(db: Session, jurisdiction_slug: str, limit: int | None = None, start_date: str | None = None, end_date: str | None = None) -> dict:
     jurisdiction = crud.get_or_create_jurisdiction(db, slug=jurisdiction_slug)
     client = LegistarClient(jurisdiction_slug)
 
@@ -64,7 +64,7 @@ def ingest_legistar(db: Session, jurisdiction_slug: str, limit: int = 10) -> dic
     except Exception as e:
         print(f"Warning: could not sync Legistar persons: {e}")
 
-    scraped = client.scrape(limit)
+    scraped = client.scrape(limit=limit, start_date=start_date, end_date=end_date)
 
     events_seen = 0
     items_seen = 0
