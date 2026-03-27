@@ -77,7 +77,7 @@ def ingest_legistar_endpoint(
         end_date=end_date)
 
 @app.post("/matching/official/{official_id}")
-def run_matching_engine_for_official_endpoint(
+async def run_matching_engine_for_official_endpoint(
     official_id: int,
     jurisdiction_slug: str,
     db: Session = Depends(get_db),
@@ -87,4 +87,4 @@ def run_matching_engine_for_official_endpoint(
     Run the matching engine for a given official and return flagged matches.
     """
 
-    return run_matching_engine_for_offical(db, official_id, jurisdiction_slug)
+    return await run_matching_engine_for_offical(db, official_id, jurisdiction_slug)
