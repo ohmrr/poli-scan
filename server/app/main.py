@@ -11,6 +11,8 @@ from server.app.api import jurisdictions, officials, events, agenda_items
 from server.app.db.connection import get_db
 from server.app.db.init_db import init_db
 
+from server.app.services.matching_engine.service import run_matching_engine_for_offical
+
 app = FastAPI(
     title="FPPC Conflict of Interest Identifier",
     version="0.0.1",
@@ -52,7 +54,6 @@ def ingest_form700_endpoint(
         db, jurisdiction_slug=client_name, csv_path=csv_path, year=year
     )
 
-
 @app.post("/ingest/legistar/{client_name}")
 def ingest_legistar_endpoint(
     client_name: str,
@@ -74,3 +75,16 @@ def ingest_legistar_endpoint(
         limit=limit, 
         start_date=start_date, 
         end_date=end_date)
+
+@app.post("/matching/official/{official_id}")
+def run_matching_engine_for_official_endpoint(
+    official_id: int,
+    jurisdiction_slug: str,
+    db: Session = Depends(get_db),
+    
+):
+    """
+    Run the matching engine for a given official and return flagged matches.
+    """
+
+    return run_matching_engine_for_offical(db, official_id, jurisdiction_slug)
