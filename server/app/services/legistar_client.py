@@ -1,6 +1,4 @@
 import requests
-import pdfplumber
-import io
 from server.app.models.legistar import AgendaItem, Person
 
 LEGISTAR_BASE_URL = "https://webapi.legistar.com/v1"
@@ -8,11 +6,6 @@ LEGISTAR_BASE_URL = "https://webapi.legistar.com/v1"
 FETCH_MATTER_TYPES = {
     "Consent Calendar Item",
     "Regular Calendar Item",
-}
-
-SUMMARY_TYPES = {
-    "summary report",
-    "summary",
 }
 
 ADMIN_ACCOUNT_NAMES = {
@@ -110,35 +103,6 @@ class LegistarClient:
             if a.get("MatterAttachmentName") and a.get("MatterAttachmentHyperlink")
         ]
 
-    def find_summary_report(self, attachments: list[dict]) -> dict | None:
-        for a in attachments:
-            lower_name = a.get("name", "").lower()
-
-            if any(k in lower_name for k in SUMMARY_TYPES):
-                return a
-
-        return None
-
-    def pdf_extract(self, url: str) -> str | None:
-        try:
-            response = requests.get(url, timeout=20)
-            response.raise_for_status()
-        except requests.RequestException as e:
-            print(f"Couldn't download attachment: {e}")
-            return None
-
-        try:
-            pages = []
-            with pdfplumber.open(io.BytesIO(response.content)) as pdf:
-                for page in pdf.pages:
-                    text = page.extract_text()
-                    if text:
-                        pages.append(text)
-            return "\n".join(pages) if pages else None
-        except Exception as e:
-            print(f"Couldn't extract pdf: {e}")
-            return None
-
     def scrape(self, limit: int | None = None, start_date: str | None = None, end_date: str | None = None) -> list[AgendaItem]:
         events = self.get_final_events(limit, 
                                        start_date, 
@@ -178,7 +142,6 @@ class LegistarClient:
                     "matter_type": matter_type,
                     "title": title,
                     "attachments": [],
-                    "summary_report": None,
                 }
 
                 if matter_type not in FETCH_MATTER_TYPES:
@@ -187,21 +150,6 @@ class LegistarClient:
 
                 attachments = self.get_attachments(matter_id)
                 report["attachments"] = attachments
-
-                if not attachments:
-                    results.append(AgendaItem.from_dict(report))
-                    continue
-
-                summary = self.find_summary_report(attachments)
-                if not summary:
-                    results.append(AgendaItem.from_dict(report))
-                    continue
-
-                pdf_text = self.pdf_extract(summary["link"])
-                if pdf_text:
-                    report["summary_report"] = pdf_text
-                else:
-                    print("Couldn't extract text from Summary Report")
 
                 results.append(AgendaItem.from_dict(report))
 

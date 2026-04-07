@@ -68,6 +68,7 @@ def ingest_legistar(db: Session, jurisdiction_slug: str, limit: int | None = Non
 
     events_seen = 0
     items_seen = 0
+    attachments_seen = 0
 
     for item in scraped:
         event = crud.get_or_create_event(
@@ -79,18 +80,26 @@ def ingest_legistar(db: Session, jurisdiction_slug: str, limit: int | None = Non
         )
         events_seen += 1
 
-        crud.get_or_create_agenda_item(
+        agenda_item = crud.get_or_create_agenda_item(
             db,
             event_id=event.id,
             matter_id=item.matter_id,
             matter_type=item.matter_type,
             title=item.title,
-            summary_report=item.summary_report,
         )
         items_seen += 1
+        for att in item.attachments:
+            crud.get_or_create_attachment_items(
+            db,
+            agenda_item_id=agenda_item.id,
+            name=att.get("name"),
+            url=att.get("link"),
+            )
+            attachments_seen += 1
 
     return {
         "jurisdiction": jurisdiction_slug,
         "events_processed": events_seen,
         "agenda_items_processed": items_seen,
+        "attachments_processed" : attachments_seen,
     }

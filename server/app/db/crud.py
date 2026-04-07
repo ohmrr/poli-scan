@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from server.app.db.models import Jurisdiction, Official, Holding, Event, AgendaItem
+from server.app.db.models import Jurisdiction, Official, Holding, Event, AgendaItem, AttachmentItem
 
 # Jurisdictions
 
@@ -159,7 +159,6 @@ def get_or_create_agenda_item(
     matter_id: int | None,
     matter_type: str | None,
     title: str | None,
-    summary_report: str | None,
 ) -> AgendaItem:
     record = (
         db.query(AgendaItem)
@@ -172,14 +171,30 @@ def get_or_create_agenda_item(
             legistar_matter_id=matter_id,
             matter_type=matter_type,
             title=title,
-            summary_report=summary_report,
         )
         db.add(record)
         db.commit()
         db.refresh(record)
-    else:
-        if summary_report and not record.summary_report:
-            record.summary_report = summary_report
-            db.commit()
-            db.refresh(record)
+    return record
+
+#Attachments
+
+def get_or_create_attachment_items(
+    db: Session, agenda_item_id: int, name: str, url: str | None
+) -> AttachmentItem:
+    record = (
+        db.query(AttachmentItem)
+        .filter_by(agenda_item_id=agenda_item_id, url = url)
+        .first()
+    )
+
+    if record is None:
+        record = AttachmentItem(
+            agenda_item_id=agenda_item_id, name=name, url=url
+        )
+
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+
     return record

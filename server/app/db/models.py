@@ -119,10 +119,29 @@ class AgendaItem(Base):
     legistar_matter_id: Mapped[int | None] = mapped_column(Integer)
     matter_type: Mapped[str | None] = mapped_column(String(100))
     title: Mapped[str | None] = mapped_column(Text)
-    summary_report: Mapped[str | None] = mapped_column(Text)
+    attachment_items: Mapped[list["AttachmentItem"]] = relationship(
+        back_populates="agenda_item", cascade="all, delete-orphan"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     event: Mapped["Event"] = relationship(back_populates="agenda_items")
 
     def __repr__(self) -> str:
         return f"<AgendaItem matter_id={self.legistar_matter_id!r} type={self.matter_type!r}>"
+
+class AttachmentItem(Base):
+    __tablename__ = "attachment_items"
+    __table_args__ = (UniqueConstraint("agenda_item_id", "url"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    agenda_item_id: Mapped[int] = mapped_column(
+        ForeignKey("agenda_items.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str | None] = mapped_column(Text)
+    url: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    agenda_item: Mapped["AgendaItem"] = relationship(back_populates="attachment_items")
+
+    def __repr__(self) -> str:
+        return f"<AttachmentItem name={self.name!r} url={self.url!r}>"
