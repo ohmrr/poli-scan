@@ -198,3 +198,16 @@ def get_or_create_attachment_items(
         db.refresh(record)
 
     return record
+
+def get_agenda_items_by_jurisdiction_and_year(
+    db: Session, jurisdiction_id: int, year: int
+) -> list[AgendaItem]:
+    return (
+        db.query(AgendaItem)
+        .join(Event)
+        .filter(
+            Event.jurisdiction_id == jurisdiction_id,
+            Event.event_date.like(f"{year}%")
+        )
+        .all()
+    )
