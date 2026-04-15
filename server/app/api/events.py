@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from server.app.db.connection import get_db
 from server.app.db import crud
@@ -12,25 +14,31 @@ router = APIRouter(
 
 
 @router.get("/")
-def list_events(
+async def list_events(
     jurisdiction_slug: str = Query(..., description="e.g. 'sacramento'"),
     body_name: str | None = Query(
         default=None, description="Filter by body name e.g. 'City Council'"
     ),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    jurisdiction = crud.get_jurisdiction_by_slug(db, jurisdiction_slug)
+    jurisdiction = await crud.get_jurisdiction_by_slug(db, jurisdiction_slug)
     if not jurisdiction:
         raise HTTPException(
             status_code=404, detail=f"Jurisdiction '{jurisdiction_slug}' not found."
         )
 
-    query = db.query(Event).filter_by(jurisdiction_id=jurisdiction.id)
+    stmt = (
+        select(Event)
+        .where(Event.jurisdiction_id == jurisdiction.id)
+        .options(selectinload(Event.agenda_items))
+    )
 
     if body_name:
-        query = query.filter(Event.body_name.ilike(f"%{body_name}%"))
+        stmt = stmt.where(Event.body_name.ilike(f"%{body_name}%"))
 
-    events = query.order_by(Event.event_date.desc()).all()
+    stmt = stmt.order_by(Event.event_date.desc())
+    results = await db.execute(stmt)
+    events = results.scalars().all()
 
     return [
         {
@@ -45,8 +53,10 @@ def list_events(
 
 
 @router.get("/{event_id}")
-def get_event(event_id: int, db: Session = Depends(get_db)):
-    event = db.query(Event).filter_by(id=event_id).first()
+async def get_event(event_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Event).where(Event.id == event_id))
+    event = result.scalars().first()
+
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
