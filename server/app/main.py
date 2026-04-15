@@ -1,28 +1,26 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
-from server.app.services.form700_parser import load_form700_csv
-from server.app.services.legistar_client import LegistarClient
+from contextlib import asynccontextmanager
 
 from server.app.services.ingestion import ingest_form700, ingest_legistar
 
 from server.app.api import jurisdictions, officials, events, agenda_items
 
-from server.app.db.connection import get_db
-from server.app.db.init_db import init_db
+from server.app.db.connection import get_db, init_db
 
 from server.app.services.matching_engine.service import run_matching_engine_for_offical
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
+
 app = FastAPI(
-    title="FPPC Conflict of Interest Identifier",
-    version="0.0.1",
+    title="FPPC Conflict of Interest Identifier", version="0.0.1", lifespan=lifespan
 )
-
-
-@app.on_event("startup")
-def startup():
-    init_db()
-
 
 app.include_router(jurisdictions.router)
 app.include_router(officials.router)
@@ -54,6 +52,7 @@ def ingest_form700_endpoint(
         db, jurisdiction_slug=client_name, csv_path=csv_path, year=year
     )
 
+
 @app.post("/ingest/legistar/{client_name}")
 def ingest_legistar_endpoint(
     client_name: str,
@@ -71,17 +70,18 @@ def ingest_legistar_endpoint(
     """
     return ingest_legistar(
         db,
-        jurisdiction_slug=client_name, 
-        limit=limit, 
-        start_date=start_date, 
-        end_date=end_date)
+        jurisdiction_slug=client_name,
+        limit=limit,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
 
 @app.post("/matching/official/{official_id}")
 async def run_matching_engine_for_official_endpoint(
     official_id: int,
     jurisdiction_slug: str,
     db: Session = Depends(get_db),
-    
 ):
     """
     Run the matching engine for a given official and return flagged matches.

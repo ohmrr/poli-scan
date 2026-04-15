@@ -1,25 +1,36 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import AsyncAdaptedQueuePool
+
+from server.app.db.models import Base
 
 load_dotenv()
 
-TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL")
-TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
+raw_db_url = os.getenv("TURSO_DATABASE_URL")
+host = raw_db_url.replace("libsql://", "")
 
-engine = create_engine(
-    f"sqlite+{TURSO_DATABASE_URL}?secure=true",
-    connect_args={"auth_token": TURSO_AUTH_TOKEN},
+engine = create_async_engine(
+    f"sqlite+aiolibsql://{host}?secure=true",
+    poolclass=AsyncAdaptedQueuePool,
+    connect_args={
+        "auth_token": os.getenv("TURSO_AUTH_TOKEN")
+    },
+    echo=True
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+async def get_db():
+    async with async_session() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
-def get_db():
-    db: Session = SessionLocal()
-
-    try:
-        yield db
-    finally:
-        db.close()
+async def init_db():
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
