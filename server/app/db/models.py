@@ -129,6 +129,7 @@ class AgendaItem(Base):
     def __repr__(self) -> str:
         return f"<AgendaItem matter_id={self.legistar_matter_id!r} type={self.matter_type!r}>"
 
+
 class AttachmentItem(Base):
     __tablename__ = "attachment_items"
     __table_args__ = (UniqueConstraint("agenda_item_id", "url"),)

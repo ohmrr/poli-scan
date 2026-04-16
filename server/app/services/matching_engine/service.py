@@ -1,59 +1,65 @@
+import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from server.app.db.models import Official
 from .matcher import check_conflict
 from server.app.db.crud import get_agenda_items_by_jurisdiction_and_year
 from .llm_providers import ollama_llm
-"""
-Bridge database data to the matching engine.
-This file should:
-1. load an official and their holdings from the database
-2. find candidate agenda items from the database
-3. map database fields into matcher input format
-4. run the matcher on each candidate item
-5. return flagged matches
-"""
 
-#testing matching engine service
-async def run_matching_engine_for_offical(db,official_id: int, jurisdiction_slug: str): 
-    official = db.query(Official).filter(Official.id == official_id).first()
+_sem = asyncio.Semaphore(5)
+
+
+async def run_matching_engine_for_official(
+    db: AsyncSession, official_id: int, jurisdiction_slug: str
+):
+    result = await db.execute(
+        select(Official)
+        .where(Official.id == official_id)
+        .options(selectinload(Official.holdings))  # eager load holdings
+    )
+    official = result.scalars().first()
     if not official:
         return {"Error": "Official not found/invalid official_id"}
-    year = 2019
-    matches = []
-    holdings_list = []
-    for h in official.holdings:
-        if h.year == year:
-            holdings_list.append({
-                "entity_name": h.entity_name,
-                "year": h.year
-            })
 
+    year = 2019
+    holdings_list = [
+        {"entity_name": h.entity_name, "year": h.year}
+        for h in official.holdings
+        if h.year == year
+    ]
     official_dict = {
         "full_name": official.full_name,
         "position": official.position,
         "holdings": holdings_list,
     }
 
-    agenda_items = get_agenda_items_by_jurisdiction_and_year(
+    agenda_items = await get_agenda_items_by_jurisdiction_and_year(
         db, official.jurisdiction_id, year
     )
 
-    for item in agenda_items:
-        att_list = []
-        for att in item.attachment_items:
-            att_list.append({
-                "name": att.name,
-                "url": att.url
-            })
-        item_dict = {
+    item_dicts = [
+        {
             "title": item.title,
-            "attachments": att_list
+            "attachments": [
+                {"name": att.name, "url": att.url} for att in item.attachment_items
+            ],
         }
-        result = await check_conflict(official_dict, item_dict,ollama_llm)
-        if result:
-            matches.append(result)
+        for item in agenda_items
+    ]
+
+    results = await asyncio.gather(
+        *[
+            check_conflict(official_dict, item_dict, ollama_llm)
+            for item_dict in item_dicts
+        ]
+    )
+
+    matches = [r for r in results if r is not None]
+
     return {
         "official_id": official.id,
-        "official_name": f"{official.first_name or ''} {official.last_name or ''}".strip(),
+        "official_name": official.full_name,
         "jurisdiction_slug": jurisdiction_slug,
         "holdings_count": len(official.holdings),
         "matches_found": len(matches),

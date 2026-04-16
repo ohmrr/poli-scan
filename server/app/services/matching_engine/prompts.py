@@ -1,5 +1,9 @@
-
-def get_prompt(official: dict, agenda_item: dict,attachment_name :str = "",attachment_text: str = "") -> str:
+def get_prompt(
+    official: dict,
+    agenda_item: dict,
+    attachment_name: str = "",
+    attachment_text: str = "",
+) -> str:
     name = official.get("full_name", "Unknown Official")
     position = official.get("position", "Unknown Position")
     holdings = official.get("holdings", [])

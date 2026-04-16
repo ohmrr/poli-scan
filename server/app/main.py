@@ -9,7 +9,7 @@ from server.app.api import jurisdictions, officials, events, agenda_items
 
 from server.app.db.connection import get_db, init_db
 
-from server.app.services.matching_engine.service import run_matching_engine_for_offical
+from server.app.services.matching_engine.service import run_matching_engine_for_official
 
 
 @asynccontextmanager
@@ -54,7 +54,7 @@ def ingest_form700_endpoint(
 
 
 @app.post("/ingest/legistar/{client_name}")
-def ingest_legistar_endpoint(
+async def ingest_legistar_endpoint(
     client_name: str,
     limit: int | None = 1,
     start_date: str | None = None,
@@ -68,7 +68,7 @@ def ingest_legistar_endpoint(
     - start_date: YYYY-MM-DD
     - end_date: YYYY-MM-DD
     """
-    return ingest_legistar(
+    return await ingest_legistar(
         db,
         jurisdiction_slug=client_name,
         limit=limit,
@@ -87,4 +87,4 @@ async def run_matching_engine_for_official_endpoint(
     Run the matching engine for a given official and return flagged matches.
     """
 
-    return await run_matching_engine_for_offical(db, official_id, jurisdiction_slug)
+    return await run_matching_engine_for_official(db, official_id, jurisdiction_slug)

@@ -14,13 +14,12 @@ host = raw_db_url.replace("libsql://", "")
 engine = create_async_engine(
     f"sqlite+aiolibsql://{host}?secure=true",
     poolclass=AsyncAdaptedQueuePool,
-    connect_args={
-        "auth_token": os.getenv("TURSO_AUTH_TOKEN")
-    },
-    echo=True
+    connect_args={"auth_token": os.getenv("TURSO_AUTH_TOKEN")},
+    echo=True,
 )
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
 
 async def get_db():
     async with async_session() as session:
@@ -30,6 +29,7 @@ async def get_db():
         except Exception:
             await session.rollback()
             raise
+
 
 async def init_db():
     async with engine.begin() as connection:

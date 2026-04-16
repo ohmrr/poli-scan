@@ -123,18 +123,18 @@ async def add_holding_if_missing(
         )
     )
 
-    record = result.scalars().first()
+    holding_record = result.scalars().first()
 
     if holding_record is None:
         holding_record = Holding(
             official_id=official_id, entity_name=entity_name, year=year
         )
 
-        db.add(record)
+        db.add(holding_record)
         await db.commit()
-        await db.refresh(record)
+        await db.refresh(holding_record)
 
-    return record
+    return holding_record
 
 
 # Events
