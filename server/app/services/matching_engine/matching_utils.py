@@ -1,7 +1,8 @@
 import asyncio
+import io
+
 import httpx
 import pdfplumber
-import io
 
 _client = httpx.AsyncClient(timeout=30.0)
 
@@ -27,3 +28,7 @@ async def fetch_attachment_text(url: str) -> str:
         return await asyncio.to_thread(parse_pdf, resp.content)
     except Exception:
         return ""
+
+
+async def close():
+    await _client.aclose()

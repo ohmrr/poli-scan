@@ -1,10 +1,14 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+import logging
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from server.app.db import crud
 from server.app.db.models import Official
 from server.app.services.form700_parser import load_form700_csv
 from server.app.services.legistar_client import LegistarClient
+
+logger = logging.getLogger(__name__)
 
 
 def ingest_form700(
@@ -72,7 +76,7 @@ async def ingest_legistar(
 
             await db.commit()
         except Exception as e:
-            print(f"Warning: could not sync Legistar persons: {e}")
+            logger.warning("Could not sync Legistar persons: %s", e)
 
         scraped = await client.scrape(
             limit=limit, start_date=start_date, end_date=end_date

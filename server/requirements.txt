@@ -5,11 +5,15 @@ certifi==2026.2.25
 cffi==2.0.0
 charset-normalizer==3.4.4
 click==8.3.1
+colorlog==6.10.1
 cryptography==46.0.5
 fastapi==0.129.0
 greenlet==3.3.2
 h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
 idna==3.11
+isort==8.0.1
 libsql==0.1.11
 libsql-experimental==0.0.55
 pdfminer.six==20251230
@@ -17,6 +21,7 @@ pdfplumber==0.11.9
 pillow==12.1.1
 pycparser==3.0
 pydantic==2.12.5
+pydantic-settings==2.13.1
 pydantic_core==2.41.5
 pypdfium2==5.6.0
 python-dotenv==1.2.2
@@ -28,5 +33,3 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
 uvicorn==0.41.0
-httpx==0.28.1
-httpcore==1.0.9

@@ -1,17 +1,22 @@
-import httpx
+import logging
 import time
 
+import httpx
+
+from server.app.config import settings
+
+logger = logging.getLogger(__name__)
 _client = httpx.AsyncClient(timeout=60.0)
 
 
 async def ollama_llm(prompt: str) -> str:
-    start = time.time()  # start timer
+    start = time.time()
 
     try:
         response = await _client.post(
-            "http://127.0.0.1:11434/api/generate",
+            f"{settings.OLLAMA_BASE_URL}/api/generate",
             json={
-                "model": "qwen2.5:14b",
+                "model": settings.OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",
@@ -20,14 +25,16 @@ async def ollama_llm(prompt: str) -> str:
         )
 
         data = response.json()
-
-        end = time.time()  # stop timer
-        print(f"LLM took {end - start:.2f} seconds")  # print difference
+        logger.debug("LLM took %.2f seconds", time.time() - start)
 
         return data["response"]
     except httpx.RequestError as e:
-        print(f"Ollama is not available: {e}")
+        logger.error("Ollama unavailable: %s", e)
         return ""
     except Exception as e:
-        print(f"Error Ollama LLM: {e}")
+        logger.error("Ollama error: %s | Raw response: %s", e, response.text[:500])
         return ""
+
+
+async def close():
+    await _client.aclose()

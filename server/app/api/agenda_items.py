@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select
-
-from server.app.db.connection import get_db
-from server.app.db.models import AgendaItem
 
 from server.app.db import crud
-from server.app.db.models import Event, Jurisdiction
-
+from server.app.db.connection import get_db
+from server.app.db.models import AgendaItem, Event, Jurisdiction
 
 router = APIRouter(
     prefix="/agenda-items",

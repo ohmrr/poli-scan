@@ -1,13 +1,13 @@
+from sqlalchemy import join, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, join
 
 from server.app.db.models import (
-    Jurisdiction,
-    Official,
-    Holding,
-    Event,
     AgendaItem,
     AttachmentItem,
+    Event,
+    Holding,
+    Jurisdiction,
+    Official,
 )
 
 # Jurisdictions

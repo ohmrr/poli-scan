@@ -1,6 +1,11 @@
 import asyncio
+import logging
+
 import httpx
+
 from server.app.models.legistar import AgendaItem, Person
+
+logger = logging.getLogger(__name__)
 
 LEGISTAR_BASE_URL = "https://webapi.legistar.com/v1"
 
@@ -23,7 +28,7 @@ class LegistarClient:
         self.jurisdiction = jurisdiction
         self.base = f"{LEGISTAR_BASE_URL}/{jurisdiction}"
         self._client = httpx.AsyncClient(timeout=10.0)
-        self._sem = asyncio.Semaphore(10)  # Cap to avoid rate limiting
+        self._sem = asyncio.Semaphore(10)
 
     async def __aenter__(self):
         return self
@@ -36,13 +41,14 @@ class LegistarClient:
         async with self._sem:
             response = await self._client.get(url, params=params)
             response.raise_for_status()
+
             return response.json()
 
     async def get_persons(self) -> list[Person]:
         try:
             raw = await self._fetch("Persons")
         except httpx.RequestError as e:
-            print(f"Couldn't fetch persons for '{self.jurisdiction}': {e}")
+            logger.warning("Couldn't fetch persons for '%s': %s", self.jurisdiction, e)
             return []
 
         people = []
@@ -74,6 +80,7 @@ class LegistarClient:
 
         if limit is not None:
             params["$top"] = limit
+
         if start_date and end_date:
             params["$filter"] = (
                 f"EventDate ge datetime'{start_date}' and EventDate le datetime'{end_date}'"
@@ -86,7 +93,7 @@ class LegistarClient:
         try:
             data = await self._fetch("Events", params=params)
         except httpx.RequestError as e:
-            print(f"Couldn't fetch events for '{self.jurisdiction}': {e}")
+            logger.warning("Couldn't fetch events for '%s': %s", self.jurisdiction, e)
             return []
 
         return [m for m in data if m.get("EventAgendaStatusName") == "Final"]
@@ -95,14 +102,18 @@ class LegistarClient:
         try:
             return await self._fetch(f"Events/{event_id}/EventItems")
         except httpx.RequestError as e:
-            print(f"Couldn't fetch event items for '{self.jurisdiction}': {e}")
+            logger.warning(
+                "Couldn't fetch event items for '%s': %s", self.jurisdiction, e
+            )
             return []
 
     async def get_attachments(self, matter_id: int) -> list[dict]:
         try:
             raw = await self._fetch(f"Matters/{matter_id}/Attachments")
         except httpx.RequestError as e:
-            print(f"Couldn't fetch attachments for '{self.jurisdiction}': {e}")
+            logger.warning(
+                "Couldn't fetch attachments for '%s': %s", self.jurisdiction, e
+            )
             return []
 
         return [
@@ -120,7 +131,7 @@ class LegistarClient:
         events = await self.get_final_events(limit, start_date, end_date)
 
         if not events:
-            print(f"No events found for '{self.jurisdiction}'")
+            logger.warning("No events found for '%s'", self.jurisdiction)
             return []
 
         # Fetch all event items in parallel
@@ -136,11 +147,15 @@ class LegistarClient:
             event_body = e.get("EventBodyName", "")
 
             agendas = [a for a in items if a.get("EventItemMatterId") is not None]
-            print(
-                f"\nEventId: {event_id} | EventDate: {event_date} | EventBody: {event_body}"
-            )
-            print(f"{len(agendas)} agenda items found")
 
+            logger.info(
+                "EventId: %s | EventDate: %s | EventBody: %s",
+                event_id,
+                event_date,
+                event_body,
+            )
+            logger.info("%s agenda items found", len(agendas))
+            
             matters_needing_attachments = [
                 a for a in agendas if a.get("EventItemMatterType") in FETCH_MATTER_TYPES
             ]

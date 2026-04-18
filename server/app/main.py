@@ -1,21 +1,35 @@
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
-
+import logging
 from contextlib import asynccontextmanager
 
-from server.app.services.ingestion import ingest_form700, ingest_legistar
+from fastapi import Depends, FastAPI
+from sqlalchemy.orm import Session
 
-from server.app.api import jurisdictions, officials, events, agenda_items
+from server.app.config import settings
+from server.app.logger import setup_logging
 
+setup_logging()
+
+
+from server.app.api import agenda_items, events, jurisdictions, officials
 from server.app.db.connection import get_db, init_db
-
+from server.app.services.ingestion import ingest_form700, ingest_legistar
+from server.app.services.matching_engine import llm_providers, matching_utils
 from server.app.services.matching_engine.service import run_matching_engine_for_official
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+
+    logger.info("Database initialized")
+    logger.info("Running in %s mode", settings.ENV)
+
     yield
+
+    await llm_providers.close()
+    await matching_utils.close()
 
 
 app = FastAPI(
@@ -27,7 +41,7 @@ app.include_router(officials.router)
 app.include_router(events.router)
 app.include_router(agenda_items.router)
 
-print("API Documentation - http://127.0.0.1:8000/docs")
+logger.info("API Documentation - http://127.0.0.1:8000/docs")
 
 
 @app.get("/")

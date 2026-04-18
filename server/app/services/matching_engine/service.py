@@ -1,13 +1,16 @@
 import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from server.app.db.models import Official
-from .matcher import check_conflict
-from server.app.db.crud import get_agenda_items_by_jurisdiction_and_year
-from .llm_providers import ollama_llm
 
-_sem = asyncio.Semaphore(5)
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from server.app.db.crud import get_agenda_items_by_jurisdiction_and_year
+from server.app.db.models import Official
+
+from .llm_providers import ollama_llm
+from .matcher import check_conflict
+
+_sem = asyncio.Semaphore(2)
 
 
 async def run_matching_engine_for_official(
@@ -16,9 +19,10 @@ async def run_matching_engine_for_official(
     result = await db.execute(
         select(Official)
         .where(Official.id == official_id)
-        .options(selectinload(Official.holdings))  # eager load holdings
+        .options(selectinload(Official.holdings))
     )
     official = result.scalars().first()
+
     if not official:
         return {"Error": "Official not found/invalid official_id"}
 
@@ -37,7 +41,6 @@ async def run_matching_engine_for_official(
     agenda_items = await get_agenda_items_by_jurisdiction_and_year(
         db, official.jurisdiction_id, year
     )
-
     item_dicts = [
         {
             "title": item.title,
@@ -48,14 +51,12 @@ async def run_matching_engine_for_official(
         for item in agenda_items
     ]
 
-    results = await asyncio.gather(
-        *[
-            check_conflict(official_dict, item_dict, ollama_llm)
-            for item_dict in item_dicts
-        ]
-    )
+    matches = []
+    for item_dict in item_dicts:
+        result = await check_conflict(official_dict, item_dict, ollama_llm, _sem)
 
-    matches = [r for r in results if r is not None]
+        if result is not None:
+            matches.append(result)
 
     return {
         "official_id": official.id,
