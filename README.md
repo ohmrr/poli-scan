@@ -97,7 +97,7 @@ With the venv activated, install the required Python packages from the `server/r
 pip install -r server/requirements.txt
 ```
 
-> [!INFO]
+> [!NOTE]
 > This ensures that we all use the same package versions.
 
 #### ⬇️ Adding New Dependencies
