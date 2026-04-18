@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from server.app.db import crud
 from server.app.db.connection import get_db
@@ -13,45 +14,50 @@ router = APIRouter(
 
 
 @router.get("/search")
-def search_officials(
+async def search_officials(
     name: str,
     jurisdiction_slug: str | None = Query(
         default=None, description="Filter by jurisdiction slug, e.g. 'sonoma-county'"
     ),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    query = db.query(Official).filter(
-        func.concat(Official.first_name, " ", Official.last_name).ilike(f"%{name}%")
+    stmt = (
+        select(Official)
+        .where(
+            func.concat(Official.first_name, " ", Official.last_name).ilike(f"%{name}%")
+        )
+        .options(selectinload(Official.jurisdiction), selectinload(Official.holdings))
     )
 
     if jurisdiction_slug:
-        jurisdiction = crud.get_jurisdiction_by_slug(db, jurisdiction_slug)
+        jurisdiction = await crud.get_jurisdiction_by_slug(db, jurisdiction_slug)
         if not jurisdiction:
             raise HTTPException(
                 status_code=404,
                 detail=f"Jurisdiction '{jurisdiction_slug}' not found.",
             )
-        query = query.filter(Official.jurisdiction_id == jurisdiction.id)
+        stmt = stmt.order_by(Official.last_name, Official.first_name)
 
-    results = query.order_by(Official.last_name, Official.first_name).all()
+    result = await db.execute(stmt)
+    officials = result.scalars().all()
 
     return [
         {
-            "id": r.id,
-            "full_name": r.full_name,
-            "jurisdiction_slug": r.jurisdiction.slug,
-            "agency": r.agency,
+            "id": o.id,
+            "full_name": o.full_name,
+            "jurisdiction_slug": o.jurisdiction.slug,
+            "agency": o.agency,
             "holdings": [
-                {"entity_name": h.entity_name, "year": h.year} for h in r.holdings
+                {"entity_name": h.entity_name, "year": h.year} for h in o.holdings
             ],
         }
-        for r in results
+        for o in officials
     ]
 
 
 @router.get("/{official_id}")
-def get_official(official_id: int, db: Session = Depends(get_db)):
-    official = crud.get_official_by_id(db, official_id)
+async def get_official(official_id: int, db: AsyncSession = Depends(get_db)):
+    official = await crud.get_official_by_id(db, official_id)
 
     if not official:
         raise HTTPException(

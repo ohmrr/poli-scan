@@ -1,35 +1,47 @@
-from fastapi import FastAPI, Depends
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
 
-from server.app.services.form700_parser import load_form700_csv
-from server.app.services.legistar_client import LegistarClient
+from server.app.config import settings
+from server.app.logger import setup_logging
 
+setup_logging()
+
+
+from server.app.api import agenda_items, events, jurisdictions, officials
+from server.app.db.connection import get_db, init_db
 from server.app.services.ingestion import ingest_form700, ingest_legistar
+from server.app.services.matching_engine import llm_providers, matching_utils
+from server.app.services.matching_engine.service import run_matching_engine_for_official
 
-from server.app.api import jurisdictions, officials, events, agenda_items
+logger = logging.getLogger(__name__)
 
-from server.app.db.connection import get_db
-from server.app.db.init_db import init_db
 
-from server.app.services.matching_engine.service import run_matching_engine_for_offical
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+
+    logger.info("Database initialized")
+    logger.info("Running in %s mode", settings.ENV)
+
+    yield
+
+    await llm_providers.close()
+    await matching_utils.close()
+
 
 app = FastAPI(
-    title="FPPC Conflict of Interest Identifier",
-    version="0.0.1",
+    title="FPPC Conflict of Interest Identifier", version="0.0.1", lifespan=lifespan
 )
-
-
-@app.on_event("startup")
-def startup():
-    init_db()
-
 
 app.include_router(jurisdictions.router)
 app.include_router(officials.router)
 app.include_router(events.router)
 app.include_router(agenda_items.router)
 
-print("API Documentation - http://127.0.0.1:8000/docs")
+logger.info("API Documentation - http://127.0.0.1:8000/docs")
 
 
 @app.get("/")
@@ -54,8 +66,9 @@ def ingest_form700_endpoint(
         db, jurisdiction_slug=client_name, csv_path=csv_path, year=year
     )
 
+
 @app.post("/ingest/legistar/{client_name}")
-def ingest_legistar_endpoint(
+async def ingest_legistar_endpoint(
     client_name: str,
     limit: int | None = 1,
     start_date: str | None = None,
@@ -69,22 +82,23 @@ def ingest_legistar_endpoint(
     - start_date: YYYY-MM-DD
     - end_date: YYYY-MM-DD
     """
-    return ingest_legistar(
+    return await ingest_legistar(
         db,
-        jurisdiction_slug=client_name, 
-        limit=limit, 
-        start_date=start_date, 
-        end_date=end_date)
+        jurisdiction_slug=client_name,
+        limit=limit,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
 
 @app.post("/matching/official/{official_id}")
 async def run_matching_engine_for_official_endpoint(
     official_id: int,
     jurisdiction_slug: str,
     db: Session = Depends(get_db),
-    
 ):
     """
     Run the matching engine for a given official and return flagged matches.
     """
 
-    return await run_matching_engine_for_offical(db, official_id, jurisdiction_slug)
+    return await run_matching_engine_for_official(db, official_id, jurisdiction_slug)

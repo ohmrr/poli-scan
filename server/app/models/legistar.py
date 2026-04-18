@@ -43,4 +43,3 @@ class AgendaItem(BaseModel):
             attachments=data.get("attachments"),
             summary_report=data.get("summary_report"),
         )
-
