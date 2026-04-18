@@ -1,20 +1,19 @@
-import { Button } from "@/components/ui/button"
+import { Layout } from "./layout"
+import { ConflictTable } from "./components/ConflictTable"
+import { useState } from "react"
 
 export function App() {
+  const [jurisdiction, setJurisdiction] = useState("Sonoma County")
+  const [year, setYear] = useState(2019)
+
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
+    <Layout>
+      <div className="flex w-full max-w-5xl flex-col items-center gap-y-10 py-5">
+        <h1 className="text-5xl font-bold">PoliScan</h1>
+
+        <ConflictTable jurisdiction={jurisdiction} year={year} />
       </div>
-    </div>
+    </Layout>
   )
 }
 
