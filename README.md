@@ -7,13 +7,58 @@ git clone https://github.com/ohmrr/poli-scan.git
 cd poli-scan
 ```
 
+## 🖥️ Development Environment
+
+Before setting up either the backend or frontend, make sure your system is ready.
+
+**Windows users** are strongly recommended to use **WSL (Windows Subsystem for Linux)**. While it is not strictly required, most tooling in this project works reliably in a Unix-like environment.
+
+Mac and Linux users should be fine to proceed as-is.
+
 ## ⚙️ Backend Setup
 
 ### 📋 Prerequisites
 
-- Install **Python** version `3.12.12`
+- **Python** version `3.12.12`
+- Ollama (see below)
 
-### 💾 Setting up Virtual Environment
+### 🦙 Installing and Running Ollama
+
+Ollama is required, in development, to run the local LLM used for conflict-of-interest matching.
+
+Install **Ollama** and follow the [instructions](https://ollama.com/download) for your operating system.
+
+Once installed, pull the model. If your machine can handle it, use the default:
+
+```sh
+ollama pull qwen2.5:14b
+```
+
+If your machine struggles, you may try a smaller model. Note that these models will have less accuracy.
+
+```sh
+ollama pull qwen2.5:7b
+
+# or
+
+ollama pull qwen2.5:3b
+```
+
+> [!TIP]
+> Make sure to update `OLLAMA_MODEL` in your `.env` to match whichever model you end up using.
+
+#### 🔧 Running the Ollama Service
+
+Start the Ollama service in a separate terminal so that it runs in the background.
+
+```sh
+ollama serve
+```
+
+> [!NOTE]
+> On macOS, Linux, or WSL, Ollama may start automatically after installation. You can verify that it's running by visiting http://127.0.0.1:11434 in your browser.
+
+### 💾 Setting up Python Virtual Environment
 
 Create a virtual environment. You only have to do this once per system.
 
@@ -35,6 +80,7 @@ Windows (PowerShell)
 server\venv\Scripts\Activate.ps1
 ```
 
+> [!TIP]
 > When activated, your terminal prompt should show (venv).
 
 If you wish to deactivate the virtual environment, simply run:
@@ -51,6 +97,7 @@ With the venv activated, install the required Python packages from the `server/r
 pip install -r server/requirements.txt
 ```
 
+> [!INFO]
 > This ensures that we all use the same package versions.
 
 #### ⬇️ Adding New Dependencies
@@ -61,16 +108,22 @@ Note that whenever you add a new package, update `requirement.txt`:
 pip freeze > server/requirements.txt
 ```
 
-### 🔑 Adding Database Credentials
+### 🔑 Adding Environment Variables
 
 In `/server`, make a new file called `.env` and copy over the contents of `.env.example`. For the actual environment variable values themselves, you can reach out to Omar and ask for them.
 
 ```sh
-TURSO_DATABASE_URL=libsql://{db-name}-{owner-name}.{server}.turso.io
-TURSO_AUTH_TOKEN=
+ENV='development' # development | production
+
+OLLAMA_BASE_URL='http://127.0.0.1:11434'
+OLLAMA_MODEL='qwen2.5:14b'
+
+TURSO_DATABASE_URL='libsql://{db-name}-{owner-name}.{server}.turso.io'
+TURSO_AUTH_TOKEN=''
 ```
 
-**NOTE**: You should never expose the contents of `.env` for any reason. Do not include them in source control and push them to GitHub, or copy and paste them to ChatGPT or any other LLM. Please keep them secure and private.
+> [!WARNING]
+> You should never expose the contents of `.env` for any reason. Do not include them in source control and push them to GitHub, or copy and paste them to ChatGPT or any other LLM. Please keep them secure and private.
 
 
 ### ▶️ Running the FastAPI Server
@@ -132,7 +185,8 @@ For development packages, such as `prettier`, you can instead run:
 pnpm install --dev [package]
 ```
 
-*Note: Whenever you install packages, ensure that you are working in the `website` directory*
+> [!NOTE]
+> Whenever you install packages, ensure that you are working in the `website` directory
 
 ### ▶️ Running the Website
 
