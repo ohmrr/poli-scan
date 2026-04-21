@@ -83,12 +83,12 @@ class LegistarClient:
 
         if start_date and end_date:
             params["$filter"] = (
-                f"EventDate ge datetime'{start_date}' and EventDate le datetime'{end_date}'"
+                f"EventDate ge datetime'{start_date}T00:00:00' and EventDate le datetime'{end_date}T23:59:59'"
             )
         elif start_date:
-            params["$filter"] = f"EventDate ge datetime'{start_date}'"
+            params["$filter"] = f"EventDate ge datetime'{start_date}T00:00:00'"
         elif end_date:
-            params["$filter"] = f"EventDate le datetime'{end_date}'"
+            params["$filter"] = f"EventDate le datetime'{end_date}T23:59:59'"
 
         try:
             data = await self._fetch("Events", params=params)
@@ -96,7 +96,15 @@ class LegistarClient:
             logger.warning("Couldn't fetch events for '%s': %s", self.jurisdiction, e)
             return []
 
-        return [m for m in data if m.get("EventAgendaStatusName") == "Final"]
+        if data:
+            logger.info("Sample EventDate: %s", data[0].get("EventDate"))
+
+        return [
+            m for m in data
+            if m.get("EventAgendaStatusName") == "Final"
+            and (not start_date or m.get("EventDate", "")[:10] >= start_date)
+            and (not end_date or m.get("EventDate", "")[:10] <= end_date)
+        ]
 
     async def get_event_items(self, event_id: int) -> list[dict]:
         try:
@@ -121,6 +129,17 @@ class LegistarClient:
             for a in raw
             if a.get("MatterAttachmentName") and a.get("MatterAttachmentHyperlink")
         ]
+    
+    async def get_event_item_votes(self, event_item_id : int) -> list[dict]:
+        try:
+            raw = await self._fetch(f"EventItems/{event_item_id}/Votes")
+        except httpx.RequestError as e:
+            logger.warning(
+                "Couldn't fetch votes for '%s': %s", self.jurisdiction, e
+            )
+            return []
+
+        return raw
 
     async def scrape(
         self,
@@ -177,6 +196,7 @@ class LegistarClient:
                 report = {
                     "jurisdiction": self.jurisdiction,
                     "event_id": event_id,
+                    "event_item_id": i.get("EventItemId"),
                     "event_date": event_date,
                     "body_name": event_body,
                     "matter_id": matter_id,
