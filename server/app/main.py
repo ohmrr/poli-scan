@@ -10,7 +10,7 @@ from server.app.logger import setup_logging
 setup_logging()
 
 
-from server.app.api import agenda_items, events, jurisdictions, officials
+from server.app.api import agenda_items, events, jurisdictions, officials, matches
 from server.app.db.connection import get_db, init_db
 from server.app.services.ingestion import ingest_form700, ingest_legistar
 from server.app.services.matching_engine import llm_providers, matching_utils
@@ -40,6 +40,7 @@ app.include_router(jurisdictions.router)
 app.include_router(officials.router)
 app.include_router(events.router)
 app.include_router(agenda_items.router)
+app.include_router(matches.router)
 
 logger.info("API Documentation - http://127.0.0.1:8000/docs")
 
