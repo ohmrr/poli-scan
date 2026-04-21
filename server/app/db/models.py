@@ -147,3 +147,30 @@ class AttachmentItem(Base):
 
     def __repr__(self) -> str:
         return f"<AttachmentItem name={self.name!r} url={self.url!r}>"
+
+class MatchResult(Base):
+    __tablename__ = "match_results"
+    __table_args__ = (UniqueConstraint("official_id", "agenda_item_id", "matched_interest"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    official_id: Mapped[int] = mapped_column(
+        ForeignKey("officials.id", ondelete="CASCADE"), nullable=False,
+    )
+    jurisdiction_id: Mapped[int] = mapped_column(
+        ForeignKey("jurisdictions.id", ondelete="CASCADE"), nullable=False
+    )
+    agenda_item_id: Mapped[int] = mapped_column(
+        ForeignKey("agenda_items.id", ondelete="CASCADE"), nullable=False
+    )
+    matched_interest: Mapped[str] = mapped_column(String(100), nullable=False)
+    confidence: Mapped[int] = mapped_column(Integer)
+    flagged: Mapped[bool] = mapped_column(Boolean, default=True)
+    reason: Mapped[str | None] = mapped_column(Text)
+    pdf_url: Mapped[str | None] = mapped_column(Text)
+    attachment_name: Mapped[str | None] = mapped_column(String(255))
+    event_date: Mapped[str | None] = mapped_column(String(50))
+    year: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    def __repr__(self) -> str:
+        return f"<MatchResult official_id={self.official_id} agenda_item_id={self.agenda_item_id} matched_interest={self.matched_interest!r}>"
