@@ -123,6 +123,9 @@ class AgendaItem(Base):
     attachment_items: Mapped[list["AttachmentItem"]] = relationship(
         back_populates="agenda_item", cascade="all, delete-orphan"
     )
+    votes: Mapped[list["Vote"]] = relationship(
+        back_populates="agenda_item", cascade="all, delete-orphan"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     event: Mapped["Event"] = relationship(back_populates="agenda_items")
@@ -148,6 +151,27 @@ class AttachmentItem(Base):
     def __repr__(self) -> str:
         return f"<AttachmentItem name={self.name!r} url={self.url!r}>"
 
+
+class Vote(Base):
+    __tablename__ = "votes"
+    __table_args__ = (UniqueConstraint("legistar_vote_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    agenda_item_id: Mapped[int] = mapped_column(
+        ForeignKey("agenda_items.id", ondelete="CASCADE"), nullable=False
+    )
+    official_id: Mapped[int | None] = mapped_column(
+        ForeignKey("officials.id", ondelete="SET NULL")
+    )
+    vote_value: Mapped[str] = mapped_column(String(20))
+    legistar_vote_id: Mapped[int] = mapped_column(Integer, unique=True)
+
+    agenda_item: Mapped["AgendaItem"] = relationship(back_populates="votes")
+
+    def __repr__(self) -> str:
+        return f"<Vote legistar_vote_id={self.legistar_vote_id} value={self.vote_value!r}>"
+
+
 class MatchResult(Base):
     __tablename__ = "match_results"
     __table_args__ = (UniqueConstraint("official_id", "agenda_item_id", "matched_interest"),)
@@ -163,13 +187,13 @@ class MatchResult(Base):
         ForeignKey("agenda_items.id", ondelete="CASCADE"), nullable=False
     )
     matched_interest: Mapped[str] = mapped_column(String(100), nullable=False)
-    confidence: Mapped[int] = mapped_column(Integer)
+    confidence: Mapped[int | None] = mapped_column(Integer)
     flagged: Mapped[bool] = mapped_column(Boolean, default=True)
     reason: Mapped[str | None] = mapped_column(Text)
     pdf_url: Mapped[str | None] = mapped_column(Text)
     attachment_name: Mapped[str | None] = mapped_column(String(255))
     event_date: Mapped[str | None] = mapped_column(String(50))
-    year: Mapped[int] = mapped_column(Integer)
+    year: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     def __repr__(self) -> str:

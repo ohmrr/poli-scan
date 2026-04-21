@@ -1,5 +1,6 @@
 from sqlalchemy import join, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from server.app.db.models import (
     AgendaItem,
@@ -8,7 +9,8 @@ from server.app.db.models import (
     Holding,
     Jurisdiction,
     Official,
-    MatchResult
+    MatchResult,
+    Vote,
 )
 
 # Jurisdictions
@@ -200,6 +202,8 @@ async def get_or_create_agenda_item(
         await db.commit()
         await db.refresh(record)
 
+    return record
+
 
 async def get_agenda_items_by_jurisdiction_and_year(
     db: AsyncSession, jurisdiction_id: int, year: int
@@ -210,6 +214,7 @@ async def get_agenda_items_by_jurisdiction_and_year(
         .where(
             Event.jurisdiction_id == jurisdiction_id, Event.event_date.like(f"{year}%")
         )
+        .options(selectinload(AgendaItem.attachment_items))
     )
 
     return result.scalars().all()
@@ -288,3 +293,32 @@ async def match_exists(db: AsyncSession, official_id: int, agenda_item_id: int) 
     )
 
     return result.scalars().first() is not None
+
+
+# Votes
+
+
+async def get_aye_voters(db: AsyncSession, agenda_item_id: int) -> list[int]:
+    result = await db.execute(
+        select(Vote.official_id).where(
+            Vote.agenda_item_id == agenda_item_id,
+            Vote.vote_value == "Aye",
+            Vote.official_id.is_not(None),
+        )
+    )
+    return list(result.scalars().all())
+
+
+async def bulk_insert_votes(db: AsyncSession, agenda_item_id: int, votes: list[dict]) -> None:
+    for v in votes:
+        result = await db.execute(
+            select(Vote).where(Vote.legistar_vote_id == v.get("legistar_vote_id"))
+        )
+        if result.scalars().first() is None:
+            db.add(Vote(
+                agenda_item_id=agenda_item_id,
+                legistar_vote_id=v.get("legistar_vote_id"),
+                official_id=v.get("official_id"),
+                vote_value=v.get("vote_value"),
+            ))
+    await db.commit()

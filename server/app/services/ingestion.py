@@ -82,41 +82,67 @@ async def ingest_legistar(
             limit=limit, start_date=start_date, end_date=end_date
         )
 
-    events_seen = 0
-    items_seen = 0
-    attachments_seen = 0
+        events_seen = 0
+        items_seen = 0
+        attachments_seen = 0
+        votes_seen = 0
 
-    for item in scraped:
-        event = await crud.get_or_create_event(
-            db,
-            jurisdiction_id=jurisdiction.id,
-            legistar_event_id=item.event_id,
-            event_date=item.event_date,
-            body_name=item.body_name,
-        )
-        events_seen += 1
-
-        agenda_item = await crud.get_or_create_agenda_item(
-            db,
-            event_id=event.id,
-            matter_id=item.matter_id,
-            matter_type=item.matter_type,
-            title=item.title,
-        )
-        items_seen += 1
-
-        for att in item.attachments:
-            await crud.get_or_create_attachment_items(
+        for item in scraped:
+            event = await crud.get_or_create_event(
                 db,
-                agenda_item_id=agenda_item.id,
-                name=att.get("name"),
-                url=att.get("link"),
+                jurisdiction_id=jurisdiction.id,
+                legistar_event_id=item.event_id,
+                event_date=item.event_date,
+                body_name=item.body_name,
             )
-            attachments_seen += 1
+            events_seen += 1
 
-    return {
-        "jurisdiction": jurisdiction_slug,
-        "events_processed": events_seen,
-        "agenda_items_processed": items_seen,
-        "attachments_processed": attachments_seen,
-    }
+            agenda_item = await crud.get_or_create_agenda_item(
+                db,
+                event_id=event.id,
+                matter_id=item.matter_id,
+                matter_type=item.matter_type,
+                title=item.title,
+            )
+            items_seen += 1
+
+            if item.event_item_id:
+                raw_votes = await client.get_event_item_votes(item.event_item_id)
+                vote_rows = []
+                for v in raw_votes:
+                    person_id = v.get("VotePersonId")
+                    official_id = None
+                    if person_id:
+                        off = await db.execute(
+                            select(Official).where(
+                                Official.jurisdiction_id == jurisdiction.id,
+                                Official.legistar_person_id == person_id,
+                            )
+                        )
+                        off_record = off.scalars().first()
+                        if off_record:
+                            official_id = off_record.id
+                    vote_rows.append({
+                        "legistar_vote_id": v["VoteId"],
+                        "vote_value": v.get("VoteValueName", ""),
+                        "official_id": official_id,
+                    })
+                await crud.bulk_insert_votes(db, agenda_item.id, vote_rows)
+                votes_seen += len(vote_rows)
+
+            for att in item.attachments:
+                await crud.get_or_create_attachment_items(
+                    db,
+                    agenda_item_id=agenda_item.id,
+                    name=att.get("name"),
+                    url=att.get("link"),
+                )
+                attachments_seen += 1
+
+        return {
+            "jurisdiction": jurisdiction_slug,
+            "events_processed": events_seen,
+            "agenda_items_processed": items_seen,
+            "attachments_processed": attachments_seen,
+            "votes_processed": votes_seen,
+        }
