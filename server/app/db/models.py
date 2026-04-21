@@ -118,6 +118,7 @@ class AgendaItem(Base):
         ForeignKey("events.id", ondelete="CASCADE"), nullable=False
     )
     legistar_matter_id: Mapped[int | None] = mapped_column(Integer)
+    legistar_event_item_id: Mapped[int | None] = mapped_column(Integer)
     matter_type: Mapped[str | None] = mapped_column(String(100))
     title: Mapped[str | None] = mapped_column(Text)
     attachment_items: Mapped[list["AttachmentItem"]] = relationship(
