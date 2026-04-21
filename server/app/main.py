@@ -51,7 +51,7 @@ def root():
 
 
 @app.post("/ingest/form700/{client_name}/{year}")
-def ingest_form700_endpoint(
+async def ingest_form700_endpoint(
     client_name: str,
     year: int,
     db: Session = Depends(get_db),
@@ -63,7 +63,7 @@ def ingest_form700_endpoint(
     Expects a file at:  ./server/app/data/{client_name}-{year}.csv
     """
     csv_path = f"./server/app/data/{client_name}-{year}.csv"
-    return ingest_form700(
+    return await ingest_form700(
         db, jurisdiction_slug=client_name, csv_path=csv_path, year=year
     )
 
