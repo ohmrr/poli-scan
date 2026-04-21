@@ -21,16 +21,16 @@ export function ConflictTable({ jurisdiction, year }: ConflictTableProps) {
       </TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-25">Name</TableHead>
-          <TableHead>Year</TableHead>
-          <TableHead>Matched Holding</TableHead>
-          <TableHead>PDF</TableHead>
-          <TableHead>Confidence (%)</TableHead>
+          <TableHead className="w-25 font-bold">Name</TableHead>
+          <TableHead className="font-bold">Year</TableHead>
+          <TableHead className="font-bold">Matched Holding</TableHead>
+          <TableHead className="font-bold">PDF</TableHead>
+          <TableHead className="font-bold">Confidence (%)</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         <TableRow>
-          <TableCell className="font-medium">Lynda Hopkins</TableCell>
+          <TableCell>Lynda Hopkins</TableCell>
           <TableCell>2019</TableCell>
           <TableCell>LandPass</TableCell>
           <TableCell>Placeholder</TableCell>

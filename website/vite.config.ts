@@ -11,7 +11,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  
+
   //added to fetch data from backend
   server: {
     proxy: {
@@ -22,4 +22,4 @@ export default defineConfig({
       },
     },
   },
-});
+})
