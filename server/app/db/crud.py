@@ -8,6 +8,7 @@ from server.app.db.models import (
     Holding,
     Jurisdiction,
     Official,
+    MatchResult
 )
 
 # Jurisdictions
@@ -234,3 +235,56 @@ async def get_or_create_attachment_items(
         await db.refresh(record)
 
     return record
+
+
+# Matches (& Saving)
+
+
+async def save_match_result(
+    db: AsyncSession, official_id: int, jurisdiction_id: int, agenda_item_id: int, matched_interest: str,
+    confidence: int, flagged: bool, reason: str | None, pdf_url: str | None, attachment_name: str | None, event_date: str | None, year: int
+) -> MatchResult:
+    result = await db.execute(
+        select(MatchResult).where(MatchResult.official_id == official_id, MatchResult.agenda_item_id == agenda_item_id, MatchResult.matched_interest == matched_interest)
+    )
+
+    record = result.scalars().first()
+
+    if record is None:
+        record = MatchResult(
+            official_id=official_id,
+            jurisdiction_id=jurisdiction_id,
+            agenda_item_id=agenda_item_id,
+            matched_interest=matched_interest,
+            confidence=confidence,
+            flagged=flagged,
+            reason=reason,
+            pdf_url=pdf_url,
+            attachment_name=attachment_name,
+            event_date=event_date,
+            year=year
+        )
+
+        db.add(record)
+        await db.commit()
+        await db.refresh(record)
+    
+    return record
+
+
+async def get_matches_by_official(db: AsyncSession, official_id: int) -> list[MatchResult]:
+    result = await db.execute(
+        select(MatchResult)
+        .where(MatchResult.official_id == official_id)
+    )
+
+    return result.scalars().all()
+
+
+async def match_exists(db: AsyncSession, official_id: int, agenda_item_id: int) -> bool:
+    result = await db.execute(
+        select(MatchResult)
+        .where(MatchResult.official_id == official_id, MatchResult.agenda_item_id == agenda_item_id)
+    )
+
+    return result.scalars().first() is not None
