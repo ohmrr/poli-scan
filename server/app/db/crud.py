@@ -183,6 +183,7 @@ async def get_or_create_agenda_item(
     matter_id: int | None,
     matter_type: str | None,
     title: str | None,
+    event_item_id: int | None = None,
 ) -> AgendaItem:
     result = await db.execute(
         select(AgendaItem).filter_by(event_id=event_id, legistar_matter_id=matter_id)
@@ -194,6 +195,7 @@ async def get_or_create_agenda_item(
         record = AgendaItem(
             event_id=event_id,
             legistar_matter_id=matter_id,
+            legistar_event_item_id=event_item_id,
             matter_type=matter_type,
             title=title,
         )
@@ -203,6 +205,15 @@ async def get_or_create_agenda_item(
         await db.refresh(record)
 
     return record
+
+
+async def get_agenda_item_by_event_item_id(
+    db: AsyncSession, event_item_id: int
+) -> AgendaItem | None:
+    result = await db.execute(
+        select(AgendaItem).where(AgendaItem.legistar_event_item_id == event_item_id)
+    )
+    return result.scalars().first()
 
 
 async def get_agenda_items_by_jurisdiction_and_year(
