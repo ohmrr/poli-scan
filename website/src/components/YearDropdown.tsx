@@ -4,15 +4,17 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
 
 interface Props {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
+  label: string
+  value: string
+  onChange: (value: string) => void
 }
-//hardcoded years
-const years = ["2018", "2019", "2020", "2021", "2022", "2023"];
+
+// Grab current year, and push 10 previous years into array
+const currentYear = new Date().getFullYear()
+const years = [...Array(10)].map((_, i) => (currentYear - i).toString())
 
 export function YearDropdown({ label, value, onChange }: Props) {
   return (
@@ -20,7 +22,7 @@ export function YearDropdown({ label, value, onChange }: Props) {
       <label className="text-sm font-medium">{label}</label>
 
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-[220px] bg-white text-black">
+        <SelectTrigger className="w-55">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
 
@@ -33,5 +35,5 @@ export function YearDropdown({ label, value, onChange }: Props) {
         </SelectContent>
       </Select>
     </div>
-  );
+  )
 }
