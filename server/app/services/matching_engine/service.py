@@ -4,10 +4,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from server.app.db.crud import get_agenda_items_by_jurisdiction_and_year
+from server.app.db.crud import get_agenda_items_by_jurisdiction_and_year, get_aye_voters
 from server.app.db.models import Official
 
-from .llm_providers import ollama_llm
+from .llm_providers import ollama_llm, groq_llm
+from server.app.config import settings
 from .matcher import check_conflict
 
 _sem = asyncio.Semaphore(2)
@@ -32,28 +33,32 @@ async def run_matching_engine_for_official(
         for h in official.holdings
         if h.year == year
     ]
+    if not holdings_list:
+        return {"official_id": official.id, "official_name": official.full_name, "matches_found": 0, "matches": []}
     official_dict = {
         "full_name": official.full_name,
         "position": official.position,
         "holdings": holdings_list,
     }
 
+    matches = []
+
     agenda_items = await get_agenda_items_by_jurisdiction_and_year(
         db, official.jurisdiction_id, year
     )
-    item_dicts = [
-        {
-            "title": item.title,
+    llm_fn = groq_llm if settings.LLM_PROVIDER == "groq" else ollama_llm
+    for agenda_item in agenda_items:
+        aye_voters = await get_aye_voters(db, agenda_item.id)
+        if aye_voters and official.id not in aye_voters:
+            continue
+        item_dict = {
+            "title": agenda_item.title,
             "attachments": [
-                {"name": att.name, "url": att.url} for att in item.attachment_items
+                {"name": att.name, "url": att.url} for att in agenda_item.attachment_items
             ],
         }
-        for item in agenda_items
-    ]
-
-    matches = []
-    for item_dict in item_dicts:
-        result = await check_conflict(official_dict, item_dict, ollama_llm, _sem)
+        
+        result = await check_conflict(official_dict, item_dict, llm_fn, _sem)
 
         if result is not None:
             matches.append(result)
