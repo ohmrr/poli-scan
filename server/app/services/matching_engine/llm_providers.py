@@ -1,6 +1,6 @@
 import logging
 import time
-
+from openai import AsyncOpenAI
 import httpx
 
 from server.app.config import settings
@@ -36,5 +36,23 @@ async def ollama_llm(prompt: str) -> str:
         return ""
 
 
+_groq_client = AsyncOpenAI(
+    api_key=settings.GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1",
+)
+async def groq_llm(prompt: str) -> str:
+    try:
+        response = await _groq_client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.error("Groq error: %s", e)
+        return ""
+
+
 async def close():
     await _client.aclose()
+    await _groq_client.close()
