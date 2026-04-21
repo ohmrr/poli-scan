@@ -22,6 +22,7 @@ class Person(BaseModel):
 class AgendaItem(BaseModel):
     jurisdiction: Optional[str] = None
     event_id: Optional[int] = None
+    event_item_id: Optional[int] = None
     event_date: Optional[str] = None
     body_name: Optional[str] = None
     matter_id: Optional[int] = None
@@ -35,6 +36,7 @@ class AgendaItem(BaseModel):
         return cls(
             jurisdiction=data.get("jurisdiction"),
             event_id=data.get("event_id"),
+            event_item_id=data.get("event_item_id"),
             event_date=data.get("event_date"),
             body_name=data.get("body_name"),
             matter_id=data.get("matter_id"),
