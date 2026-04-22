@@ -10,7 +10,7 @@ router = APIRouter(
 )
 
 
-@router.get("/")
+@router.get("")
 async def get_jurisdictions(db: AsyncSession = Depends(get_db)):
     records = await crud.list_jurisdictions(db)
     return [

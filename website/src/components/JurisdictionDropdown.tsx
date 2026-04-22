@@ -38,7 +38,7 @@ export function JurisdictionDropdown({ value, onChange }: Props) {
   useEffect(() => {
     getJurisdictions()
       .then(setJurisdictions)
-  })
+  }, [])
 
   return (
     <div className="flex flex-col gap-2">
