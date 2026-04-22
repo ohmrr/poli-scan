@@ -13,6 +13,7 @@ interface Props {
 }
 
 // Grab current year, and push 10 previous years into array
+// Even though only the past 5 years are the target, this is just to be safe for now
 const currentYear = new Date().getFullYear()
 const years = [...Array(10)].map((_, i) => (currentYear - i).toString())
 
@@ -22,7 +23,7 @@ export function YearDropdown({ label, value, onChange }: Props) {
       <label className="text-sm font-medium">{label}</label>
 
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-55">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
 

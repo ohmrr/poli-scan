@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-
+import type { Jurisdiction } from "@/types/jurisdiction"
 import {
   Select,
   SelectContent,
@@ -7,12 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-export interface Jurisdiction {
-  id: number
-  slug: string
-  display_name: string
-}
+import { getJurisdictions } from "@/services/jurisdiction"
 
 interface Props {
   value: string
@@ -29,23 +24,28 @@ function prettyName(name: string) {
 export function JurisdictionDropdown({ value, onChange }: Props) {
   const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([])
 
+  // useEffect(() => {
+  //   fetch("/api/jurisdictions/")
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       setJurisdictions(data)
+  //     })
+  //     .catch((err) => {
+  //       console.error("Fetch error:", err)
+  //     })
+  // }, [])
+
   useEffect(() => {
-    fetch("/api/jurisdictions/")
-      .then((res) => res.json())
-      .then((data) => {
-        setJurisdictions(data)
-      })
-      .catch((err) => {
-        console.error("Fetch error:", err)
-      })
-  }, [])
+    getJurisdictions()
+      .then(setJurisdictions)
+  })
 
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium">Select County</label>
 
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-55">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select County" />
         </SelectTrigger>
 
