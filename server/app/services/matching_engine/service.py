@@ -18,7 +18,7 @@ _sem = asyncio.Semaphore(2)
 
 
 async def run_matching_engine_for_official(
-    db: AsyncSession, official_id: int, jurisdiction_slug: str
+    db: AsyncSession, official_id: int, jurisdiction_slug: str, year: int = 2019
 ):
     result = await db.execute(
         select(Official)
@@ -29,8 +29,6 @@ async def run_matching_engine_for_official(
 
     if not official:
         return {"Error": "Official not found/invalid official_id"}
-
-    year = 2019
     holdings_list = [
         {"entity_name": h.entity_name, "year": h.year}
         for h in official.holdings
