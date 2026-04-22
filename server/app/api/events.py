@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.get("/")
+@router.get("")
 async def list_events(
     jurisdiction_slug: str = Query(..., description="e.g. 'sacramento'"),
     body_name: str | None = Query(
