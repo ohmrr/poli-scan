@@ -96,10 +96,11 @@ async def ingest_legistar_endpoint(
 async def run_matching_engine_for_official_endpoint(
     official_id: int,
     jurisdiction_slug: str,
+    year: int = 2019,
     db: Session = Depends(get_db),
 ):
     """
     Run the matching engine for a given official and return flagged matches.
     """
 
-    return await run_matching_engine_for_official(db, official_id, jurisdiction_slug)
+    return await run_matching_engine_for_official(db, official_id, jurisdiction_slug, year)
