@@ -155,7 +155,7 @@ class AttachmentItem(Base):
 
 class Vote(Base):
     __tablename__ = "votes"
-    __table_args__ = (UniqueConstraint("legistar_vote_id"),)
+    __table_args__ = (UniqueConstraint("agenda_item_id", "legistar_vote_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     agenda_item_id: Mapped[int] = mapped_column(
@@ -165,12 +165,30 @@ class Vote(Base):
         ForeignKey("officials.id", ondelete="SET NULL")
     )
     vote_value: Mapped[str] = mapped_column(String(20))
-    legistar_vote_id: Mapped[int] = mapped_column(Integer, unique=True)
+    legistar_vote_id: Mapped[int] = mapped_column(Integer)
 
     agenda_item: Mapped["AgendaItem"] = relationship(back_populates="votes")
 
     def __repr__(self) -> str:
         return f"<Vote legistar_vote_id={self.legistar_vote_id} value={self.vote_value!r}>"
+
+
+class CheckedItem(Base):
+    __tablename__ = "checked_items"
+    __table_args__ = (UniqueConstraint("official_id", "agenda_item_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    official_id: Mapped[int] = mapped_column(
+        ForeignKey("officials.id", ondelete="CASCADE"), nullable=False
+    )
+    agenda_item_id: Mapped[int] = mapped_column(
+        ForeignKey("agenda_items.id", ondelete="CASCADE"), nullable=False
+    )
+    found_match: Mapped[bool] = mapped_column(Boolean, default=False)
+    checked_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    def __repr__(self) -> str:
+        return f"<CheckedItem official_id={self.official_id} agenda_item_id={self.agenda_item_id} found_match={self.found_match}>"
 
 
 class MatchResult(Base):

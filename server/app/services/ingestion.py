@@ -109,7 +109,7 @@ async def ingest_legistar(
 
             if item.event_item_id:
                 raw_votes = await client.get_event_item_votes(item.event_item_id)
-                vote_rows_by_item: dict[int, list[dict]] = {}
+                vote_rows = []
                 for v in raw_votes:
                     person_id = v.get("VotePersonId")
                     official_id = None
@@ -123,24 +123,13 @@ async def ingest_legistar(
                         off_record = off.scalars().first()
                         if off_record:
                             official_id = off_record.id
-                    target_eid = v.get("VoteEventItemId") or item.event_item_id
-                    vote_rows_by_item.setdefault(target_eid, []).append({
+                    vote_rows.append({
                         "legistar_vote_id": v["VoteId"],
                         "vote_value": v.get("VoteValueName", ""),
                         "official_id": official_id,
                     })
-                for target_eid, vote_rows in vote_rows_by_item.items():
-                    if target_eid == item.event_item_id:
-                        target_agenda_id = agenda_item.id
-                    else:
-                        target_item = await crud.get_agenda_item_by_event_item_id(db, target_eid)
-                        if target_item:
-                            target_agenda_id = target_item.id
-                        else:
-                            logger.warning("VoteEventItemId %s not in DB, falling back to item %s", target_eid, agenda_item.id)
-                            target_agenda_id = agenda_item.id
-                    await crud.bulk_insert_votes(db, target_agenda_id, vote_rows)
-                    votes_seen += len(vote_rows)
+                await crud.bulk_insert_votes(db, agenda_item.id, vote_rows)
+                votes_seen += len(vote_rows)
 
             for att in item.attachments:
                 await crud.get_or_create_attachment_items(

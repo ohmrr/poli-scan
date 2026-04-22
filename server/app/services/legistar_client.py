@@ -53,9 +53,6 @@ class LegistarClient:
 
         people = []
         for person in raw:
-            if person.get("PersonActiveFlag") != 1:
-                continue
-
             first_name = person.get("PersonFirstName") or ""
             last_name = person.get("PersonLastName") or ""
             email = person.get("PersonEmail") or ""

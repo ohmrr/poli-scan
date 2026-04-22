@@ -14,9 +14,9 @@ async def ollama_llm(prompt: str) -> str:
 
     try:
         response = await _client.post(
-            f"{settings.OLLAMA_BASE_URL}/api/generate",
+            f"{settings.OLLAMA_BASE_URL.strip()}/api/generate",
             json={
-                "model": settings.OLLAMA_MODEL,
+                "model": settings.OLLAMA_MODEL.strip(),
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",
@@ -32,7 +32,8 @@ async def ollama_llm(prompt: str) -> str:
         logger.error("Ollama unavailable: %s", e)
         return ""
     except Exception as e:
-        logger.error("Ollama error: %s | Raw response: %s", e, response.text[:500])
+        raw = response.text[:500] if response is not None else "(no response)"
+        logger.error("Ollama error: %s | Raw response: %s", e, raw)
         return ""
 
 
