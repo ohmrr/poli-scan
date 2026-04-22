@@ -34,16 +34,19 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="FPPC Conflict of Interest Identifier", version="0.0.1", lifespan=lifespan
+    title="FPPC Conflict of Interest Identifier",
+    version="0.0.1",
+    lifespan=lifespan,
+    redirect_slashes=False,
 )
 
-origins = ["http://localhost:5173"]
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 app.include_router(jurisdictions.router)
@@ -55,7 +58,7 @@ app.include_router(matches.router)
 logger.info("API Documentation - http://127.0.0.1:8000/docs")
 
 
-@app.get("/")
+@app.get("")
 def root():
     return {"message": "FPPC API is running successfully!"}
 
@@ -113,4 +116,6 @@ async def run_matching_engine_for_official_endpoint(
     Run the matching engine for a given official and return flagged matches.
     """
 
-    return await run_matching_engine_for_official(db, official_id, jurisdiction_slug, year)
+    return await run_matching_engine_for_official(
+        db, official_id, jurisdiction_slug, year
+    )
