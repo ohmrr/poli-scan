@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 from server.app.db.models import (
     AgendaItem,
     AttachmentItem,
+    CheckedItem,
     Event,
     Holding,
     Jurisdiction,
@@ -225,7 +226,7 @@ async def get_agenda_items_by_jurisdiction_and_year(
         .where(
             Event.jurisdiction_id == jurisdiction_id, Event.event_date.like(f"{year}%")
         )
-        .options(selectinload(AgendaItem.attachment_items))
+        .options(selectinload(AgendaItem.attachment_items), selectinload(AgendaItem.event))
     )
 
     return result.scalars().all()
@@ -297,13 +298,41 @@ async def get_matches_by_official(db: AsyncSession, official_id: int) -> list[Ma
     return result.scalars().all()
 
 
-async def match_exists(db: AsyncSession, official_id: int, agenda_item_id: int) -> bool:
+async def is_item_checked(db: AsyncSession, official_id: int, agenda_item_id: int) -> bool:
     result = await db.execute(
-        select(MatchResult)
-        .where(MatchResult.official_id == official_id, MatchResult.agenda_item_id == agenda_item_id)
+        select(CheckedItem).where(
+            CheckedItem.official_id == official_id,
+            CheckedItem.agenda_item_id == agenda_item_id,
+        )
     )
-
     return result.scalars().first() is not None
+
+
+async def mark_item_checked(
+    db: AsyncSession,
+    official_id: int,
+    agenda_item_id: int,
+    found_match: bool,
+) -> CheckedItem:
+    result = await db.execute(
+        select(CheckedItem).where(
+            CheckedItem.official_id == official_id,
+            CheckedItem.agenda_item_id == agenda_item_id,
+        )
+    )
+    record = result.scalars().first()
+
+    if record is None:
+        record = CheckedItem(
+            official_id=official_id,
+            agenda_item_id=agenda_item_id,
+            found_match=found_match,
+        )
+        db.add(record)
+        await db.commit()
+        await db.refresh(record)
+
+    return record
 
 
 # Votes
@@ -323,7 +352,10 @@ async def get_aye_voters(db: AsyncSession, agenda_item_id: int) -> list[int]:
 async def bulk_insert_votes(db: AsyncSession, agenda_item_id: int, votes: list[dict]) -> None:
     for v in votes:
         result = await db.execute(
-            select(Vote).where(Vote.legistar_vote_id == v.get("legistar_vote_id"))
+            select(Vote).where(
+                Vote.agenda_item_id == agenda_item_id,
+                Vote.legistar_vote_id == v.get("legistar_vote_id"),
+            )
         )
         if result.scalars().first() is None:
             db.add(Vote(

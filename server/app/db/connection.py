@@ -4,13 +4,13 @@ from sqlalchemy.pool import AsyncAdaptedQueuePool
 from server.app.config import settings
 from server.app.db.models import Base
 
-raw_db_url = settings.TURSO_DATABASE_URL
+raw_db_url = settings.TURSO_DATABASE_URL.strip()
 host = raw_db_url.replace("libsql://", "")
 
 engine = create_async_engine(
     f"sqlite+aiolibsql://{host}?secure=true",
     poolclass=AsyncAdaptedQueuePool,
-    connect_args={"auth_token": settings.TURSO_AUTH_TOKEN},
+    connect_args={"auth_token": settings.TURSO_AUTH_TOKEN.strip()},
     echo=False,
 )
 
