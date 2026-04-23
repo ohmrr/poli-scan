@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 from server.app.db import crud
 from server.app.db.connection import get_db
 from server.app.db.models import Official
+from server.app.schemas.official import OfficialResponse
 
 router = APIRouter(
     prefix="/officials",
@@ -13,7 +14,19 @@ router = APIRouter(
 )
 
 
-@router.get("/search")
+def official_query():
+    return select(Official).options(
+        selectinload(Official.jurisdiction), selectinload(Official.holdings)
+    )
+
+
+def official_query():
+    return select(Official).options(
+        selectinload(Official.jurisdiction), selectinload(Official.holdings)
+    )
+
+
+@router.get("/search", response_model=list[OfficialResponse])
 async def search_officials(
     name: str,
     jurisdiction_slug: str | None = Query(
@@ -21,12 +34,8 @@ async def search_officials(
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = (
-        select(Official)
-        .where(
-            func.concat(Official.first_name, " ", Official.last_name).ilike(f"%{name}%")
-        )
-        .options(selectinload(Official.jurisdiction), selectinload(Official.holdings))
+    stmt = official_query().where(
+        func.concat(Official.first_name, " ", Official.last_name).ilike(f"%{name}%")
     )
 
     if jurisdiction_slug:
@@ -36,44 +45,17 @@ async def search_officials(
                 status_code=404,
                 detail=f"Jurisdiction '{jurisdiction_slug}' not found.",
             )
-        stmt = stmt.order_by(Official.last_name, Official.first_name)
+        stmt = stmt.where(Official.jurisdiction_id == jurisdiction.id)
 
-    result = await db.execute(stmt)
-    officials = result.scalars().all()
-
-    return [
-        {
-            "id": o.id,
-            "full_name": o.full_name,
-            "jurisdiction_slug": o.jurisdiction.slug,
-            "agency": o.agency,
-            "holdings": [
-                {"entity_name": h.entity_name, "year": h.year} for h in o.holdings
-            ],
-        }
-        for o in officials
-    ]
+    stmt = stmt.order_by(Official.last_name, Official.first_name)
+    return await db.scalars(stmt)
 
 
-@router.get("/{official_id}")
+@router.get("/{official_id}", response_model=OfficialResponse)
 async def get_official(official_id: int, db: AsyncSession = Depends(get_db)):
-    official = await crud.get_official_by_id(db, official_id)
-
+    official = await db.scalar(official_query().where(Official.id == official_id))
     if not official:
         raise HTTPException(
             status_code=404, detail=f"Official with id '{official_id}' not found."
         )
-
-    return {
-        "id": official.id,
-        "full_name": official.full_name,
-        "jurisdiction_id": official.jurisdiction_id,
-        "jurisdiction_slug": official.jurisdiction.slug,
-        "agency": official.agency,
-        "position": official.position,
-        "email": official.email,
-        "legistar_person_id": official.legistar_person_id,
-        "holdings": [
-            {"entity_name": h.entity_name, "year": h.year} for h in official.holdings
-        ],
-    }
+    return official
