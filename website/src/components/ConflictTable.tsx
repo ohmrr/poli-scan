@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -6,13 +7,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
-import { useEffect, useState } from "react"
-import type { Match } from "@/types/match"
 import { getMatches } from "@/services/match"
-import type { Official } from "@/types/official"
 import { getOfficialById } from "@/services/official"
+import type { Match } from "@/types/match"
+import type { Official } from "@/types/official"
+import { useEffect, useState } from "react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 interface ConflictTableProps {
   jurisdiction: string
@@ -126,7 +126,9 @@ export function ConflictTable({
                     <TooltipTrigger className="block truncate">
                       {row.matched_interest}
                     </TooltipTrigger>
-                    <TooltipContent>{row.matched_interest}</TooltipContent>
+                    <TooltipContent align="start">
+                      {row.matched_interest}
+                    </TooltipContent>
                   </Tooltip>
                 </TableCell>
                 <TableCell>
@@ -142,7 +144,12 @@ export function ConflictTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  <ConfidenceBadge value={row.confidence} />
+                  <Tooltip>
+                    <TooltipTrigger className="block">
+                      <ConfidenceBadge value={row.confidence} />
+                      <TooltipContent>{row.reason}</TooltipContent>
+                    </TooltipTrigger>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))
