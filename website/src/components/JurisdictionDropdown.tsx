@@ -23,21 +23,13 @@ function prettyName(name: string) {
 
 export function JurisdictionDropdown({ value, onChange }: Props) {
   const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([])
-
-  // useEffect(() => {
-  //   fetch("/api/jurisdictions/")
-  //     .then((res) => res.json())
-  //     .then((data) => {
-  //       setJurisdictions(data)
-  //     })
-  //     .catch((err) => {
-  //       console.error("Fetch error:", err)
-  //     })
-  // }, [])
+  const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
     getJurisdictions()
       .then(setJurisdictions)
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -46,10 +38,12 @@ export function JurisdictionDropdown({ value, onChange }: Props) {
 
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select County" />
+          <SelectValue placeholder={loading ? "Loading..." : "Select County"} />
         </SelectTrigger>
 
         <SelectContent>
+          {/* <SelectItem>&nbsp;</SelectItem> */}
+
           {jurisdictions.map((j) => (
             <SelectItem key={j.id} value={j.slug}>
               {prettyName(j.display_name || j.slug)}

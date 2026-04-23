@@ -9,4 +9,3 @@ class JurisdictionResponse(BaseModel):
 
     class Config:
         from_attributes = True
-

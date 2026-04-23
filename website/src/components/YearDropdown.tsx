@@ -6,30 +6,33 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-interface Props {
+interface YearDropdownProps {
+  years: number[]
   label: string
-  value: string
+  value?: string
   onChange: (value: string) => void
 }
 
-// Grab current year, and push 10 previous years into array
-// Even though only the past 5 years are the target, this is just to be safe for now
-const currentYear = new Date().getFullYear()
-const years = [...Array(10)].map((_, i) => (currentYear - i).toString())
-
-export function YearDropdown({ label, value, onChange }: Props) {
+export function YearDropdown({
+  years,
+  label,
+  value,
+  onChange,
+}: YearDropdownProps) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium">{label}</label>
 
-      <Select value={value} onValueChange={onChange}>
+      <Select key={value ?? "empty"} value={value} onValueChange={onChange}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
 
         <SelectContent>
+          <SelectItem value="CLEAR">&nbsp;</SelectItem>
+
           {years.map((year) => (
-            <SelectItem key={year} value={year}>
+            <SelectItem key={year} value={year.toString()}>
               {year}
             </SelectItem>
           ))}

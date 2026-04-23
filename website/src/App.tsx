@@ -3,11 +3,21 @@ import { ConflictTable } from "./components/ConflictTable"
 import { JurisdictionDropdown } from "./components/JurisdictionDropdown"
 import { YearDropdown } from "./components/YearDropdown"
 import { Separator } from "@/components/ui/separator"
+import { ModeToggle } from "./components/mode-toggle"
+
+const currentYear = new Date().getFullYear()
+const years = [...Array(10)].map((_, i) => currentYear - i)
 
 export function App() {
-  const [jurisdiction, setJurisdiction] = useState("sonoma-county")
-  const [startYear, setStartYear] = useState("2019")
-  const [endYear, setEndYear] = useState("2023")
+  const [jurisdiction, setJurisdiction] = useState("")
+  const [startYear, setStartYear] = useState<number | null>(null)
+  const [endYear, setEndYear] = useState<number | null>(null)
+
+  const startYearOptions =
+    endYear === null ? years : years.filter((year) => year <= endYear)
+
+  const endYearOptions =
+    startYear === null ? years : years.filter((year) => year >= startYear)
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -33,20 +43,28 @@ export function App() {
             <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
               Filters
             </p>
+
             <YearDropdown
+              years={startYearOptions}
               label="Start Year"
-              value={startYear}
-              onChange={setStartYear}
+              value={startYear !== null ? startYear.toString() : undefined}
+              onChange={(val) =>
+                setStartYear(val === "CLEAR" ? null : Number(val))
+              }
             />
+
             <YearDropdown
+              years={endYearOptions}
               label="End Year"
-              value={endYear}
-              onChange={setEndYear}
+              value={endYear !== null ? endYear.toString() : undefined}
+              onChange={(val) =>
+                setEndYear(val === "CLEAR" ? null : Number(val))
+              }
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-border px-6 py-4">
+        <div className="flex flex-col gap-2 border-t border-border px-6 py-4 text-center">
           <p className="text-xs text-muted-foreground">
             Data sourced from public disclosures.
           </p>
@@ -56,6 +74,10 @@ export function App() {
           >
             &copy; {new Date().getFullYear()} PoliScan | FPPC
           </a>
+
+          <div className="justify-center">
+            <ModeToggle />
+          </div>
         </div>
       </aside>
 
@@ -68,11 +90,22 @@ export function App() {
             <p className="mt-1 text-sm text-muted-foreground">
               Reviewing disclosures for{" "}
               <span className="font-medium text-foreground">
-                {jurisdiction}
+                {jurisdiction || "all jurisdictions"}
               </span>{" "}
-              from{" "}
-              <span className="font-medium text-foreground">{startYear}</span>{" "}
-              to <span className="font-medium text-foreground">{endYear}</span>
+              {startYear || endYear ? (
+                <>
+                  from{" "}
+                  <span className="font-medium text-foreground">
+                    {startYear ?? "the beginning"}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-medium text-foreground">
+                    {endYear ?? "present"}
+                  </span>
+                </>
+              ) : (
+                "across all years"
+              )}
             </p>
           </div>
         </header>
@@ -80,8 +113,8 @@ export function App() {
         <main className="flex-1 overflow-auto px-8 py-6">
           <ConflictTable
             jurisdiction={jurisdiction}
-            startYear={Number(startYear)}
-            endYear={Number(endYear)}
+            startYear={startYear ?? undefined}
+            endYear={endYear ?? undefined}
           />
         </main>
       </div>
