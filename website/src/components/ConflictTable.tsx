@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { useEffect, useState } from "react"
 import type { Match } from "@/types/match"
 import { getMatches } from "@/services/match"
@@ -120,8 +121,13 @@ export function ConflictTable({
                 <TableCell className="text-muted-foreground">
                   {row.year}
                 </TableCell>
-                <TableCell className="text-foreground">
-                  {row.matched_interest}
+                <TableCell className="max-w-xs truncate">
+                  <Tooltip>
+                    <TooltipTrigger className="block truncate">
+                      {row.matched_interest}
+                    </TooltipTrigger>
+                    <TooltipContent>{row.matched_interest}</TooltipContent>
+                  </Tooltip>
                 </TableCell>
                 <TableCell>
                   {row.pdf_url ? (
