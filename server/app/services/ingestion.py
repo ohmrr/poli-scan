@@ -61,14 +61,13 @@ async def ingest_legistar(
             persons = await client.get_persons()
 
             for p in persons:
-                result = await db.execute(
+                existing = await db.scalar(
                     select(Official).where(
                         Official.jurisdiction_id == jurisdiction.id,
                         Official.first_name == p.first_name,
                         Official.last_name == p.last_name,
                     )
                 )
-                existing = result.scalars().first()
 
                 if existing and not existing.legistar_person_id:
                     existing.legistar_person_id = p.id
@@ -114,20 +113,23 @@ async def ingest_legistar(
                     person_id = v.get("VotePersonId")
                     official_id = None
                     if person_id:
-                        off = await db.execute(
+                        off_record = await db.scalar(
                             select(Official).where(
                                 Official.jurisdiction_id == jurisdiction.id,
                                 Official.legistar_person_id == person_id,
                             )
                         )
-                        off_record = off.scalars().first()
+
                         if off_record:
                             official_id = off_record.id
-                    vote_rows.append({
-                        "legistar_vote_id": v["VoteId"],
-                        "vote_value": v.get("VoteValueName", ""),
-                        "official_id": official_id,
-                    })
+                            
+                    vote_rows.append(
+                        {
+                            "legistar_vote_id": v["VoteId"],
+                            "vote_value": v.get("VoteValueName", ""),
+                            "official_id": official_id,
+                        }
+                    )
                 await crud.bulk_insert_votes(db, agenda_item.id, vote_rows)
                 votes_seen += len(vote_rows)
 

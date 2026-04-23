@@ -29,7 +29,6 @@ class AgendaItem(BaseModel):
     matter_type: Optional[str] = None
     title: Optional[str] = None
     attachments: Optional[list[dict]] = None
-    summary_report: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "AgendaItem":
@@ -43,5 +42,4 @@ class AgendaItem(BaseModel):
             matter_type=data.get("matter_type"),
             title=data.get("title"),
             attachments=data.get("attachments"),
-            summary_report=data.get("summary_report"),
         )
