@@ -36,11 +36,13 @@ export function ConflictTable({
 }: ConflictTableProps) {
   const [matches, setMatches] = useState<Match[]>([])
   const [officials, setOfficials] = useState<Record<number, Official>>({})
+  const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
     getMatches()
       .then(setMatches)
       .catch((err) => console.error(err))
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
@@ -88,17 +90,22 @@ export function ConflictTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filtered.length === 0 ? (
+          {(filtered.length === 0 && jurisdiction) || loading ? (
             <TableRow>
               <TableCell
                 colSpan={5}
                 className="py-12 text-center text-muted-foreground"
               >
-                No conflicts of interest found for{" "}
-                <span className="font-medium text-foreground">
-                  {jurisdiction}
-                </span>{" "}
-                between {startYear}-{endYear}.
+                {loading ? (
+                  <>Loading records...</>
+                ) : (
+                  <>
+                    No conflicts of interest found for{" "}
+                    <span className="font-medium text-foreground">
+                      {jurisdiction}
+                    </span>
+                  </>
+                )}
               </TableCell>
             </TableRow>
           ) : (
