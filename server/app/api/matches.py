@@ -1,3 +1,5 @@
+print("MATCHES FILE LOADED")
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -6,6 +8,8 @@ from server.app.db import crud
 from server.app.db.connection import get_db
 from server.app.db.models import MatchResult, Jurisdiction
 from server.app.schemas.match import MatchResultResponse
+#added
+from fastapi import HTTPException
 
 router = APIRouter(
     prefix="/matches",
@@ -36,3 +40,22 @@ async def get_matches_by_jurisdiction(
         .join(Jurisdiction, MatchResult.jurisdiction_id == Jurisdiction.id)
         .where(Jurisdiction.slug == jurisdiction_slug)
     )
+
+#added
+@router.delete("/{match_id}")
+async def delete_match(
+    match_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(MatchResult).where(MatchResult.id == match_id)
+    )
+    match = result.scalar_one_or_none()
+
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    await db.delete(match)
+    await db.commit()
+
+    return {"message": "Match deleted"}

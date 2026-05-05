@@ -14,6 +14,10 @@ import type { Official } from "@/types/official"
 import { useEffect, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
+//added
+import { Trash2 } from "lucide-react"
+import { deleteMatch } from "@/services/match"
+
 interface ConflictTableProps {
   jurisdiction: string
   startYear?: number
@@ -38,6 +42,17 @@ export function ConflictTable({
   const [matches, setMatches] = useState<Match[]>([])
   const [officials, setOfficials] = useState<Record<number, Official>>({})
   const [loading, setLoading] = useState<boolean>(true)
+
+  //added
+  const handleDelete = async (matchId: number) => {
+    try {
+      await deleteMatch(matchId)
+
+      setMatches((prev) => prev.filter((m) => m.id !== matchId))
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   useEffect(() => {
     getMatches()
@@ -88,13 +103,20 @@ export function ConflictTable({
             <TableHead className="w-32 font-semibold text-foreground">
               Confidence
             </TableHead>
+
+              {/*added*/}
+            <TableHead className="w-10"></TableHead>
+
           </TableRow>
         </TableHeader>
         <TableBody>
           {(filtered.length === 0 && jurisdiction) || loading ? (
             <TableRow>
+              
+              {/*updated to 6 columns*/}
               <TableCell
-                colSpan={5}
+                colSpan={6}
+
                 className="py-12 text-center text-muted-foreground"
               >
                 {loading ? (
@@ -151,7 +173,17 @@ export function ConflictTable({
                     </TooltipTrigger>
                   </Tooltip>
                 </TableCell>
-              </TableRow>
+
+                {/*added*/}
+                <TableCell>
+                  <button
+                    onClick={() => handleDelete(row.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                </TableCell>
+                </TableRow>
             ))
           )}
         </TableBody>
