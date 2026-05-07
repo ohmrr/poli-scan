@@ -60,7 +60,6 @@ def get_santa_ana_meetings() -> list[dict]:
     
     response.raise_for_status()
 
-    # Convert JSON response into Python list of dictionaries
     return response.json()
 
 
@@ -71,7 +70,6 @@ def find_agenda_template(meeting: dict) -> dict | None:
         if template.get("title") == "Agenda":
             return template
 
-    # If no Agenda template is found, return None
     return None
 
 
@@ -85,30 +83,20 @@ def fetch_page_html(url: str) -> str:
     return response.text
 
 def scrape_santa_ana(limit: int = 1) -> list[dict]:
-    #get all meetings from API
+
     meetings = get_santa_ana_meetings()
 
     results = []
-
-    #loop through meetings 
+ 
     for meeting in meetings[:limit]:
-        print("\nMEETING SUMMARY:")
-        print(json.dumps({
-            "id": meeting.get("id"),
-            "dateTime": meeting.get("dateTime"),
-            "title": meeting.get("title"),
-            "templates": [
-            {"id": t.get("id"), "title": t.get("title")}
-            for t in meeting.get("templates", [])
-            ]
-        }, indent=2))  # print meeting data 
+        print("\nMEETING:", meeting.get("title"))
 
         #find the Agenda template inside this meeting
         agenda_template = find_agenda_template(meeting)
 
         if not agenda_template:
             print("No Agenda template found.")
-            continue  # skip this meeting if no agenda
+            continue 
 
         #build the meeting page URL
         meeting_url = build_meeting_url(agenda_template.get("id"))
@@ -118,11 +106,11 @@ def scrape_santa_ana(limit: int = 1) -> list[dict]:
 
         items = extract_items_with_attachments(soup)
 
-        print("\nEXTRACTED ITEMS:")
-        for item in items[:3]:
-            print(item)
+        print("ITEM COUNT:", len(items))
+        for item in items[:2]:
+            print(" -", item["title"])
 
-        # Step 5: create one AgendaItem (placeholder for now)
+        #create one AgendaItem (placeholder for now)
         for item in items:
             results.append({
                 "jurisdiction": "santa-ana",
@@ -134,10 +122,9 @@ def scrape_santa_ana(limit: int = 1) -> list[dict]:
     })
     return results
 
-
 if __name__ == "__main__":
     items = scrape_santa_ana(limit=5)
-    # Print the final structured output
-    import json
-    for item in items[:5]:
+
+    print("\nFINAL OUTPUT:\n")
+    for item in items:
         print(json.dumps(item, indent=2))
