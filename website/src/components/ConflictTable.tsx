@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -7,108 +6,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { getMatches, deleteMatch } from "@/services/match"
 import { getOfficialById } from "@/services/official"
 import type { Match } from "@/types/match"
 import type { Official } from "@/types/official"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
-import { Trash2 } from "lucide-react"
+import type { Jurisdiction } from "@/types/jurisdiction"
+import { ConfidenceBadge } from "./ConfidenceBadge"
+import { DeleteMatchDialog } from "./DeleteMatchDialog"
+import { jurisdictionPrettyName } from "@/lib/utils"
 
 interface ConflictTableProps {
+  jurisdictions: Jurisdiction[]
   jurisdiction: string
   startYear?: number
   endYear?: number
 }
 
-function ConfidenceBadge({ value }: { value: number }) {
-  const variant =
-    value >= 90 ? "destructive" : value >= 70 ? "secondary" : "outline"
-  return (
-    <Badge variant={variant} className="w-12 justify-center">
-      {value}%
-    </Badge>
-  )
-}
-
-interface DeleteMatchDialogProps {
-  matchId: number
-  officialName?: string
-  onConfirm: (matchId: number) => Promise<void>
-}
-
-function DeleteMatchDialog({
-  matchId,
-  officialName,
-  onConfirm,
-}: DeleteMatchDialogProps) {
-  const [loading, setLoading] = useState(false)
-
-  const handleConfirm = async () => {
-    setLoading(true)
-    try {
-      await onConfirm(matchId)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <button className="cursor-pointer text-muted-foreground transition-colors hover:text-destructive">
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this record?</AlertDialogTitle>
-          <AlertDialogDescription>
-            {officialName ? (
-              <>
-                This will permanently delete the conflict record for{" "}
-                <span className="font-medium text-foreground">
-                  {officialName}
-                </span>
-                . This action cannot be undone.
-              </>
-            ) : (
-              <>
-                This will permanently delete the record. This action cannot be
-                undone.
-              </>
-            )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading} className="cursor-pointer">
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            disabled={loading}
-            className="text-destructive-foreground cursor-pointer bg-destructive hover:bg-destructive/90"
-          >
-            {loading ? "Deleting..." : "Delete"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
-}
-
 export function ConflictTable({
+  jurisdictions,
   jurisdiction,
   startYear,
   endYear,
@@ -121,6 +38,11 @@ export function ConflictTable({
     await deleteMatch(matchId)
     setMatches((prev) => prev.filter((m) => m.id !== matchId))
   }
+
+  const jurisdictionMap = useMemo(
+    () => Object.fromEntries(jurisdictions.map(j => [j.id, jurisdictionPrettyName(j.slug)])),
+    [jurisdictions]
+  )
 
   useEffect(() => {
     getMatches()
@@ -156,19 +78,20 @@ export function ConflictTable({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead className="w-40 font-semibold text-foreground">Jurisdiction</TableHead>
             <TableHead className="w-40 font-semibold text-foreground">
               Name
             </TableHead>
-            <TableHead className="w-20 font-semibold text-foreground">
+            <TableHead className="w-15 font-semibold text-foreground">
               Year
             </TableHead>
-            <TableHead className="font-semibold text-foreground">
+            <TableHead className="w-195 font-semibold text-foreground">
               Matched Holding
             </TableHead>
-            <TableHead className="w-45 font-semibold text-foreground">
+            <TableHead className="font-semibold text-foreground">
               PDF
             </TableHead>
-            <TableHead className="w-32 text-center font-semibold text-foreground">
+            <TableHead className="w-40 text-center font-semibold text-foreground">
               Confidence
             </TableHead>
             <TableHead className="w-10" />
@@ -199,40 +122,20 @@ export function ConflictTable({
                 key={row.id}
                 className="transition-colors hover:bg-muted/40"
               >
-                <TableCell className="font-medium text-foreground">
+                <TableCell>{jurisdictionMap[row.jurisdiction_id]}</TableCell>
+                <TableCell>
                   {officials[row.official_id]?.full_name}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.year}
                 </TableCell>
-                <TableCell className="max-w-xs truncate">
-                  <Tooltip>
-                    <TooltipTrigger className="block truncate">
-                      {row.matched_interest}
-                    </TooltipTrigger>
-                    <TooltipContent align="start">
-                      {row.matched_interest}
-                    </TooltipContent>
-                  </Tooltip>
+                <TableCell className="truncate">
+                  {row.matched_interest}
                 </TableCell>
-                <TableCell className="max-w-45">
-                  {row.pdf_url ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <a
-                          href={row.pdf_url}
-                          className="block truncate text-sm text-primary underline-offset-4 hover:underline"
-                        >
-                          {row.pdf_url}
-                        </a>
-                      </TooltipTrigger>
-                      <TooltipContent align="start">
-                        {row.pdf_url}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
+                <TableCell>
+                  {row.pdf_url ? (<a href={row.pdf_url} className="text-primary truncate underline-offset-4 hover:underline">
+                    {row.pdf_url}
+                  </a>) : (<span className="text-muted-foreground">—</span>)}
                 </TableCell>
                 <TableCell className="text-center">
                   <Tooltip>

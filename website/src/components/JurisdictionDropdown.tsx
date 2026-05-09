@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { Jurisdiction } from "@/types/jurisdiction"
 import {
   Select,
@@ -7,46 +7,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getJurisdictions } from "@/services/jurisdiction"
+import { jurisdictionPrettyName } from "@/lib/utils"
 
-interface Props {
-  value: string
-  onChange: (slug: string) => void
+interface JurisdictionDropdownProps {
+  jurisdictions: Jurisdiction[]
+  selectedSlug: string
+  onSelect: (slug: string) => void
+  loading: boolean
 }
 
-function prettyName(name: string) {
-  return name
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ")
-}
+export function JurisdictionDropdown({ jurisdictions, selectedSlug, onSelect, loading }: JurisdictionDropdownProps) {
+  const [resetKey, setResetKey] = useState(0)
 
-export function JurisdictionDropdown({ value, onChange }: Props) {
-  const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-
-  useEffect(() => {
-    getJurisdictions()
-      .then(setJurisdictions)
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false))
-  }, [])
+  const handleChange = (val: string) => {
+    if (val === "CLEAR") {
+      setResetKey((k) => k + 1)
+    }
+    onSelect(val === "CLEAR" ? "" : val)
+  }
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium">Select County</label>
-
-      <Select value={value} onValueChange={onChange}>
+      <label className="text-sm font-medium">Jurisdiction</label>
+      <Select
+        key={selectedSlug === "" ? `reset-${resetKey}` : selectedSlug}
+        value={selectedSlug || undefined}
+        onValueChange={handleChange}
+      >
         <SelectTrigger className="w-full cursor-pointer">
-          <SelectValue placeholder={loading ? "Loading..." : "Select County"} />
+          <SelectValue placeholder={loading ? "Loading..." : "Select Jurisdiction"} />
         </SelectTrigger>
-
         <SelectContent>
-          {/* <SelectItem>&nbsp;</SelectItem> */}
-
+          <SelectItem value="CLEAR" className="cursor-pointer text-muted-foreground">
+            Clear
+          </SelectItem>
           {jurisdictions.map((j) => (
             <SelectItem key={j.id} value={j.slug} className="cursor-pointer">
-              {prettyName(j.display_name || j.slug)}
+              {jurisdictionPrettyName(j.display_name || j.slug)}
             </SelectItem>
           ))}
         </SelectContent>

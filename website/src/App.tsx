@@ -1,23 +1,35 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ConflictTable } from "./components/ConflictTable"
 import { JurisdictionDropdown } from "./components/JurisdictionDropdown"
 import { YearDropdown } from "./components/YearDropdown"
 import { Separator } from "@/components/ui/separator"
 import { ModeToggle } from "./components/mode-toggle"
+import type { Jurisdiction } from "./types/jurisdiction"
+import { getJurisdictions } from "@/services/jurisdiction"
 
 const currentYear = new Date().getFullYear()
 const years = [...Array(10)].map((_, i) => currentYear - i)
 
 export function App() {
+  const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([])
   const [jurisdiction, setJurisdiction] = useState("")
   const [startYear, setStartYear] = useState<number | null>(null)
   const [endYear, setEndYear] = useState<number | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
 
   const startYearOptions =
     endYear === null ? years : years.filter((year) => year <= endYear)
 
   const endYearOptions =
     startYear === null ? years : years.filter((year) => year >= startYear)
+
+  useEffect(() => {
+    getJurisdictions()
+      .then(setJurisdictions)
+      .catch((err) => console.error(err))
+    .finally(() => setLoading(false))
+  }, [])
+
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -33,8 +45,10 @@ export function App() {
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-6">
           <JurisdictionDropdown
-            value={jurisdiction}
-            onChange={setJurisdiction}
+            jurisdictions={jurisdictions}
+            selectedSlug={jurisdiction}
+            onSelect={setJurisdiction}
+            loading={loading}
           />
 
           <Separator />
@@ -112,6 +126,7 @@ export function App() {
 
         <main className="flex-1 overflow-auto px-8 py-6">
           <ConflictTable
+            jurisdictions={jurisdictions}
             jurisdiction={jurisdiction}
             startYear={startYear ?? undefined}
             endYear={endYear ?? undefined}
