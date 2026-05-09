@@ -37,7 +37,7 @@ export function JurisdictionDropdown({ value, onChange }: Props) {
       <label className="text-sm font-medium">Select County</label>
 
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full cursor-pointer">
           <SelectValue placeholder={loading ? "Loading..." : "Select County"} />
         </SelectTrigger>
 
@@ -45,7 +45,7 @@ export function JurisdictionDropdown({ value, onChange }: Props) {
           {/* <SelectItem>&nbsp;</SelectItem> */}
 
           {jurisdictions.map((j) => (
-            <SelectItem key={j.id} value={j.slug}>
+            <SelectItem key={j.id} value={j.slug} className="cursor-pointer">
               {prettyName(j.display_name || j.slug)}
             </SelectItem>
           ))}
