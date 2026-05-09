@@ -24,15 +24,15 @@ export function YearDropdown({
       <label className="text-sm font-medium">{label}</label>
 
       <Select key={value ?? "empty"} value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full cursor-pointer">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
 
         <SelectContent>
-          <SelectItem value="CLEAR">&nbsp;</SelectItem>
+          <SelectItem value="CLEAR" className="cursor-pointer">&nbsp;</SelectItem>
 
           {years.map((year) => (
-            <SelectItem key={year} value={year.toString()}>
+            <SelectItem key={year} value={year.toString()} className="cursor-pointer">
               {year}
             </SelectItem>
           ))}
