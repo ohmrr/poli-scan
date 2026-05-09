@@ -1,3 +1,4 @@
+import { useState } from "react"
 import {
   Select,
   SelectContent,
@@ -13,24 +14,31 @@ interface YearDropdownProps {
   onChange: (value: string) => void
 }
 
-export function YearDropdown({
-  years,
-  label,
-  value,
-  onChange,
-}: YearDropdownProps) {
+export function YearDropdown({ years, label, value, onChange }: YearDropdownProps) {
+  const [resetKey, setResetKey] = useState(0)
+
+  const handleChange = (val: string) => {
+    if (val === "CLEAR") {
+      setResetKey((k) => k + 1)
+    }
+    onChange(val)
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium">{label}</label>
-
-      <Select key={value ?? "empty"} value={value} onValueChange={onChange}>
+      <Select
+        key={value === undefined ? `reset-${resetKey}` : value}
+        value={value}
+        onValueChange={handleChange}
+      >
         <SelectTrigger className="w-full cursor-pointer">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
-
         <SelectContent>
-          <SelectItem value="CLEAR" className="cursor-pointer">&nbsp;</SelectItem>
-
+          <SelectItem value="CLEAR" className="cursor-pointer text-muted-foreground">
+            Reset
+          </SelectItem>
           {years.map((year) => (
             <SelectItem key={year} value={year.toString()} className="cursor-pointer">
               {year}
