@@ -39,7 +39,7 @@ export function JurisdictionDropdown({ jurisdictions, selectedSlug, onSelect, lo
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="CLEAR" className="cursor-pointer text-muted-foreground">
-            Clear
+            Reset
           </SelectItem>
           {jurisdictions.map((j) => (
             <SelectItem key={j.id} value={j.slug} className="cursor-pointer">
