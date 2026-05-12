@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -75,7 +76,9 @@ async def ingest_form700_endpoint(
 
     Expects a file at:  ./server/app/data/{client_name}-{year}.csv
     """
+    xlsx_path = f"./server/app/data/{client_name}-{year}.xlsx"
     csv_path = f"./server/app/data/{client_name}-{year}.csv"
+    csv_path = xlsx_path if os.path.exists(xlsx_path) else csv_path
     return await ingest_form700(
         db, jurisdiction_slug=client_name, csv_path=csv_path, year=year
     )
