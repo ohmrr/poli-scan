@@ -24,6 +24,7 @@ interface ConflictTableProps {
   startYear?: number
   endYear?: number
   loading: boolean
+  minConfidence: number
   onDeleteMatch: (matchId: number) => void
 }
 
@@ -36,6 +37,7 @@ export function ConflictTable({
   startYear,
   endYear,
   loading,
+  minConfidence,
   onDeleteMatch,
 }: ConflictTableProps) {
   const jurisdictionMap = useMemo(
@@ -52,9 +54,10 @@ export function ConflictTable({
         if (officialId && row.official_id !== officialId) return false
         if (startYear && row.year < startYear) return false
         if (endYear && row.year > endYear) return false
+        if (row.confidence < minConfidence) return false
         return true
       }),
-    [matches, officialId, startYear, endYear]
+    [matches, officialId, startYear, endYear, minConfidence]
   )
 
   const isEmpty = filtered.length === 0

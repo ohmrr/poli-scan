@@ -11,6 +11,7 @@ import type { Match } from "./types/match"
 import { getJurisdictions } from "@/services/jurisdiction"
 import { getMatches, deleteMatch } from "@/services/match"
 import { getOfficialById } from "@/services/official"
+import { ConfidenceSlider } from "./components/ConfidenceSlider"
 
 const currentYear = new Date().getFullYear()
 const years = [...Array(10)].map((_, i) => currentYear - i)
@@ -24,6 +25,7 @@ export function App() {
   const [startYear, setStartYear] = useState<number | null>(null)
   const [endYear, setEndYear] = useState<number | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [minConfidence, setMinConfidence] = useState(0)
 
   const startYearOptions =
     endYear === null ? years : years.filter((year) => year <= endYear)
@@ -133,6 +135,8 @@ export function App() {
                 setEndYear(val === "CLEAR" ? null : Number(val))
               }
             />
+
+            <ConfidenceSlider value={minConfidence} onChange={setMinConfidence} />
           </div>
         </div>
 
@@ -181,6 +185,7 @@ export function App() {
             endYear={endYear ?? undefined}
             loading={loading}
             onDeleteMatch={handleDeleteMatch}
+            minConfidence={minConfidence}
           />
         </main>
       </div>
