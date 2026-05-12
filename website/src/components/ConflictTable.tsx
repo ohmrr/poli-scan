@@ -34,10 +34,7 @@ export function ConflictTable({
   jurisdictions,
   jurisdiction,
   officialId,
-  startYear,
-  endYear,
   loading,
-  minConfidence,
   onDeleteMatch,
 }: ConflictTableProps) {
   const jurisdictionMap = useMemo(
@@ -48,39 +45,27 @@ export function ConflictTable({
     [jurisdictions]
   )
 
-  const filtered = useMemo(
-    () =>
-      matches.filter((row) => {
-        if (officialId && row.official_id !== officialId) return false
-        if (startYear && row.year < startYear) return false
-        if (endYear && row.year > endYear) return false
-        if (row.confidence < minConfidence) return false
-        return true
-      }),
-    [matches, officialId, startYear, endYear, minConfidence]
-  )
-
-  const isEmpty = filtered.length === 0
+  const isEmpty = matches.length === 0
 
   return (
     <div className="rounded-md border border-border bg-card">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="w-40 font-semibold text-foreground">
+            <TableHead className="w-40 font-bold text-foreground">
               Jurisdiction
             </TableHead>
-            <TableHead className="w-40 font-semibold text-foreground">
+            <TableHead className="w-40 font-bold text-foreground">
               Name
             </TableHead>
-            <TableHead className="w-15 font-semibold text-foreground">
+            <TableHead className="w-15 font-bold text-foreground">
               Year
             </TableHead>
-            <TableHead className="w-195 font-semibold text-foreground">
+            <TableHead className="w-195 font-bold text-foreground">
               Matched Holding
             </TableHead>
-            <TableHead className="font-semibold text-foreground">PDF</TableHead>
-            <TableHead className="w-40 text-center font-semibold text-foreground">
+            <TableHead className="font-bold text-foreground">PDF</TableHead>
+            <TableHead className="w-40 text-center font-bold text-foreground">
               Confidence
             </TableHead>
             <TableHead className="w-10" />
@@ -121,7 +106,7 @@ export function ConflictTable({
               </TableCell>
             </TableRow>
           ) : (
-            filtered.map((row) => (
+            matches.map((row) => (
               <TableRow
                 key={row.id}
                 className="transition-colors hover:bg-muted/40"
