@@ -1,21 +1,29 @@
 import { useState, useEffect } from "react"
 import { ConflictTable } from "./components/ConflictTable"
 import { JurisdictionDropdown } from "./components/JurisdictionDropdown"
+import { OfficialDropdown } from "./components/OfficialDropdown"
 import { YearDropdown } from "./components/YearDropdown"
 import { Separator } from "@/components/ui/separator"
 import { ModeToggle } from "./components/mode-toggle"
 import type { Jurisdiction } from "./types/jurisdiction"
+import type { Official } from "./types/official"
+import type { Match } from "./types/match"
 import { getJurisdictions } from "@/services/jurisdiction"
+import { getMatches, deleteMatch } from "@/services/match"
+import { getOfficialById } from "@/services/official"
 
 const currentYear = new Date().getFullYear()
 const years = [...Array(10)].map((_, i) => currentYear - i)
 
 export function App() {
   const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([])
+  const [matches, setMatches] = useState<Match[]>([])
+  const [officials, setOfficials] = useState<Record<number, Official>>({})
   const [jurisdiction, setJurisdiction] = useState("")
+  const [officialId, setOfficialId] = useState<number | null>(null)
   const [startYear, setStartYear] = useState<number | null>(null)
   const [endYear, setEndYear] = useState<number | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(true)
 
   const startYearOptions =
     endYear === null ? years : years.filter((year) => year <= endYear)
@@ -23,13 +31,48 @@ export function App() {
   const endYearOptions =
     startYear === null ? years : years.filter((year) => year >= startYear)
 
+  const subject = officialId
+    ? (officials[officialId]?.full_name ?? "selected official")
+    : "all officials"
+
+  const period =
+    startYear || endYear
+      ? `from ${startYear ?? "the beginning"} to ${endYear ?? "present"}`
+      : "across all years"
+
   useEffect(() => {
-    getJurisdictions()
-      .then(setJurisdictions)
+    Promise.all([getJurisdictions(), getMatches()])
+      .then(([j, m]) => {
+        setJurisdictions(j)
+        setMatches(m)
+      })
       .catch((err) => console.error(err))
-    .finally(() => setLoading(false))
+      .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    if (!matches.length) return
+
+    const missingIds = [...new Set(matches.map((m) => m.official_id))].filter(
+      (id) => !officials[id]
+    )
+    if (!missingIds.length) return
+
+    Promise.all(missingIds.map((id) => getOfficialById(id)))
+      .then((data) => {
+        setOfficials((prev) => {
+          const next = { ...prev }
+          data.forEach((o) => (next[o.id] = o))
+          return next
+        })
+      })
+      .catch((err) => console.error(err))
+  }, [matches])
+
+  const handleDeleteMatch = async (matchId: number) => {
+    await deleteMatch(matchId)
+    setMatches((prev) => prev.filter((m) => m.id !== matchId))
+  }
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -44,12 +87,27 @@ export function App() {
         </div>
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-6">
-          <JurisdictionDropdown
-            jurisdictions={jurisdictions}
-            selectedSlug={jurisdiction}
-            onSelect={setJurisdiction}
-            loading={loading}
-          />
+          <div className="flex flex-col gap-4">
+            <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              Search
+            </p>
+
+            <JurisdictionDropdown
+              jurisdictions={jurisdictions}
+              selectedSlug={jurisdiction}
+              onSelect={(val) => {
+                setJurisdiction(val)
+                setOfficialId(null)
+              }}
+              loading={loading}
+            />
+
+            <OfficialDropdown
+              officials={officials}
+              selectedId={officialId}
+              onSelect={(val) => setOfficialId(val)}
+            />
+          </div>
 
           <Separator />
 
@@ -103,33 +161,26 @@ export function App() {
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Reviewing disclosures for{" "}
-              <span className="font-medium text-foreground">
-                {jurisdiction || "all jurisdictions"}
-              </span>{" "}
-              {startYear || endYear ? (
-                <>
-                  from{" "}
-                  <span className="font-medium text-foreground">
-                    {startYear ?? "the beginning"}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-medium text-foreground">
-                    {endYear ?? "present"}
-                  </span>
-                </>
-              ) : (
-                "across all years"
-              )}
+              <span className="font-medium text-foreground">{subject}</span>
+              {jurisdiction && (
+                <> in <span className="font-medium text-foreground">{jurisdiction}</span></>
+              )}{" "}
+              {period}
             </p>
           </div>
         </header>
 
         <main className="flex-1 overflow-auto px-8 py-6">
           <ConflictTable
+            matches={matches}
+            officials={officials}
             jurisdictions={jurisdictions}
             jurisdiction={jurisdiction}
+            officialId={officialId ?? undefined}
             startYear={startYear ?? undefined}
             endYear={endYear ?? undefined}
+            loading={loading}
+            onDeleteMatch={handleDeleteMatch}
           />
         </main>
       </div>
