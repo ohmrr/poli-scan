@@ -14,7 +14,7 @@ setup_logging()
 
 from server.app.api import agenda_items, events, jurisdictions, officials, matches
 from server.app.db.connection import get_db, init_db
-from server.app.services.ingestion import ingest_form700, ingest_legistar
+from server.app.services.ingestion import ingest_form700, ingest_legistar, ingest_santa_ana
 from server.app.services.matching_engine import llm_providers, matching_utils
 from server.app.services.matching_engine.service import run_matching_engine_for_official
 
@@ -102,6 +102,24 @@ async def ingest_legistar_endpoint(
     return await ingest_legistar(
         db,
         jurisdiction_slug=client_name,
+        limit=limit,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+@app.post("/ingest/santa-ana")
+async def ingest_santa_ana_endpoint(
+    limit: int | None = 1,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Scrape Santa Ana City Council meetings from PrimeGov and store
+    events + agenda items in the database.
+    """
+    return await ingest_santa_ana(
+        db,
         limit=limit,
         start_date=start_date,
         end_date=end_date,
