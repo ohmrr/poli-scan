@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { ConflictTable } from "./components/ConflictTable"
 import { JurisdictionDropdown } from "./components/JurisdictionDropdown"
 import { OfficialDropdown } from "./components/OfficialDropdown"
@@ -12,6 +12,8 @@ import { getJurisdictions } from "@/services/jurisdiction"
 import { getMatches, deleteMatch } from "@/services/match"
 import { getOfficialById } from "@/services/official"
 import { ConfidenceSlider } from "./components/ConfidenceSlider"
+import { ExportButton } from "./components/ExportButton"
+import { EmailReportButton } from "./components/EmailReportButton"
 
 const currentYear = new Date().getFullYear()
 const years = [...Array(10)].map((_, i) => currentYear - i)
@@ -70,6 +72,18 @@ export function App() {
       })
       .catch((err) => console.error(err))
   }, [matches])
+
+  const filteredMatches = useMemo(
+    () =>
+      matches.filter((row) => {
+        if (officialId && row.official_id !== officialId) return false
+        if (startYear && row.year < startYear) return false
+        if (endYear && row.year > endYear) return false
+        if (row.confidence < minConfidence) return false
+        return true
+      }),
+    [matches, officialId, startYear, endYear, minConfidence]
+  )
 
   const handleDeleteMatch = async (matchId: number) => {
     await deleteMatch(matchId)
@@ -136,7 +150,30 @@ export function App() {
               }
             />
 
-            <ConfidenceSlider value={minConfidence} onChange={setMinConfidence} />
+            <ConfidenceSlider
+              value={minConfidence}
+              onChange={setMinConfidence}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col gap-4">
+            <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              Export
+            </p>
+
+            <ExportButton
+              matches={filteredMatches}
+              officials={officials}
+              jurisdictions={jurisdictions}
+            />
+
+            <EmailReportButton
+              matches={filteredMatches}
+              officials={officials}
+              jurisdictions={jurisdictions}
+            />
           </div>
         </div>
 
@@ -167,7 +204,13 @@ export function App() {
               Reviewing disclosures for{" "}
               <span className="font-medium text-foreground">{subject}</span>
               {jurisdiction && (
-                <> in <span className="font-medium text-foreground">{jurisdiction}</span></>
+                <>
+                  {" "}
+                  in{" "}
+                  <span className="font-medium text-foreground">
+                    {jurisdiction}
+                  </span>
+                </>
               )}{" "}
               {period}
             </p>
@@ -176,7 +219,7 @@ export function App() {
 
         <main className="flex-1 overflow-auto px-8 py-6">
           <ConflictTable
-            matches={matches}
+            matches={filteredMatches}
             officials={officials}
             jurisdictions={jurisdictions}
             jurisdiction={jurisdiction}
