@@ -14,7 +14,12 @@ interface YearDropdownProps {
   onChange: (value: string) => void
 }
 
-export function YearDropdown({ years, label, value, onChange }: YearDropdownProps) {
+export function YearDropdown({
+  years,
+  label,
+  value,
+  onChange,
+}: YearDropdownProps) {
   const [resetKey, setResetKey] = useState(0)
 
   const handleChange = (val: string) => {
@@ -36,11 +41,18 @@ export function YearDropdown({ years, label, value, onChange }: YearDropdownProp
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="CLEAR" className="cursor-pointer text-muted-foreground">
+          <SelectItem
+            value="CLEAR"
+            className="cursor-pointer text-muted-foreground"
+          >
             Reset
           </SelectItem>
           {years.map((year) => (
-            <SelectItem key={year} value={year.toString()} className="cursor-pointer">
+            <SelectItem
+              key={year}
+              value={year.toString()}
+              className="cursor-pointer"
+            >
               {year}
             </SelectItem>
           ))}

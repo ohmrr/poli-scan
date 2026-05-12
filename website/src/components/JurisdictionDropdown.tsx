@@ -16,7 +16,12 @@ interface JurisdictionDropdownProps {
   loading: boolean
 }
 
-export function JurisdictionDropdown({ jurisdictions, selectedSlug, onSelect, loading }: JurisdictionDropdownProps) {
+export function JurisdictionDropdown({
+  jurisdictions,
+  selectedSlug,
+  onSelect,
+  loading,
+}: JurisdictionDropdownProps) {
   const [resetKey, setResetKey] = useState(0)
 
   const handleChange = (val: string) => {
@@ -35,10 +40,15 @@ export function JurisdictionDropdown({ jurisdictions, selectedSlug, onSelect, lo
         onValueChange={handleChange}
       >
         <SelectTrigger className="w-full cursor-pointer">
-          <SelectValue placeholder={loading ? "Loading..." : "Select Jurisdiction"} />
+          <SelectValue
+            placeholder={loading ? "Loading..." : "Select Jurisdiction"}
+          />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="CLEAR" className="cursor-pointer text-muted-foreground">
+          <SelectItem
+            value="CLEAR"
+            className="cursor-pointer text-muted-foreground"
+          >
             Reset
           </SelectItem>
           {jurisdictions.map((j) => (

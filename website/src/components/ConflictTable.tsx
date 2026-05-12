@@ -6,79 +6,67 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getMatches, deleteMatch } from "@/services/match"
-import { getOfficialById } from "@/services/official"
 import type { Match } from "@/types/match"
 import type { Official } from "@/types/official"
-import { useEffect, useMemo, useState } from "react"
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import type { Jurisdiction } from "@/types/jurisdiction"
+import { useMemo } from "react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { ConfidenceBadge } from "./ConfidenceBadge"
 import { DeleteMatchDialog } from "./DeleteMatchDialog"
 import { jurisdictionPrettyName } from "@/lib/utils"
 
 interface ConflictTableProps {
+  matches: Match[]
+  officials: Record<number, Official>
   jurisdictions: Jurisdiction[]
   jurisdiction: string
+  officialId?: number
   startYear?: number
   endYear?: number
+  loading: boolean
+  onDeleteMatch: (matchId: number) => void
 }
 
 export function ConflictTable({
+  matches,
+  officials,
   jurisdictions,
   jurisdiction,
+  officialId,
   startYear,
   endYear,
+  loading,
+  onDeleteMatch,
 }: ConflictTableProps) {
-  const [matches, setMatches] = useState<Match[]>([])
-  const [officials, setOfficials] = useState<Record<number, Official>>({})
-  const [loading, setLoading] = useState<boolean>(true)
-
-  const handleDelete = async (matchId: number) => {
-    await deleteMatch(matchId)
-    setMatches((prev) => prev.filter((m) => m.id !== matchId))
-  }
-
   const jurisdictionMap = useMemo(
-    () => Object.fromEntries(jurisdictions.map(j => [j.id, jurisdictionPrettyName(j.slug)])),
+    () =>
+      Object.fromEntries(
+        jurisdictions.map((j) => [j.id, jurisdictionPrettyName(j.slug)])
+      ),
     [jurisdictions]
   )
 
-  useEffect(() => {
-    getMatches()
-      .then(setMatches)
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false))
-  }, [])
+  const filtered = useMemo(
+    () =>
+      matches.filter((row) => {
+        if (officialId && row.official_id !== officialId) return false
+        if (startYear && row.year < startYear) return false
+        if (endYear && row.year > endYear) return false
+        return true
+      }),
+    [matches, officialId, startYear, endYear]
+  )
 
-  useEffect(() => {
-    if (!matches.length) return
-
-    const uniqueIds = [...new Set(matches.map((m) => m.official_id))]
-
-    Promise.all(uniqueIds.map((id) => getOfficialById(id)))
-      .then((data) => {
-        const map: Record<number, Official> = {}
-        data.forEach((official) => {
-          map[official.id] = official
-        })
-        setOfficials(map)
-      })
-      .catch((err) => console.error(err))
-  }, [matches])
-
-  const filtered = matches.filter((row) => {
-    const afterStart = startYear ? row.year >= startYear : true
-    const beforeEnd = endYear ? row.year <= endYear : true
-    return afterStart && beforeEnd
-  })
+  const isEmpty = filtered.length === 0
 
   return (
     <div className="rounded-md border border-border bg-card">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="w-40 font-semibold text-foreground">Jurisdiction</TableHead>
+            <TableHead className="w-40 font-semibold text-foreground">
+              Jurisdiction
+            </TableHead>
             <TableHead className="w-40 font-semibold text-foreground">
               Name
             </TableHead>
@@ -88,9 +76,7 @@ export function ConflictTable({
             <TableHead className="w-195 font-semibold text-foreground">
               Matched Holding
             </TableHead>
-            <TableHead className="font-semibold text-foreground">
-              PDF
-            </TableHead>
+            <TableHead className="font-semibold text-foreground">PDF</TableHead>
             <TableHead className="w-40 text-center font-semibold text-foreground">
               Confidence
             </TableHead>
@@ -98,20 +84,35 @@ export function ConflictTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(filtered.length === 0 && jurisdiction) || loading ? (
+          {loading || isEmpty ? (
             <TableRow>
               <TableCell
-                colSpan={6}
+                colSpan={7}
                 className="py-12 text-center text-muted-foreground"
               >
                 {loading ? (
                   <>Loading records...</>
                 ) : (
                   <>
-                    No conflicts of interest found for{" "}
-                    <span className="font-medium text-foreground">
-                      {jurisdiction}
-                    </span>
+                    No conflicts of interest found
+                    {officialId && officials[officialId] && (
+                      <>
+                        {" "}
+                        for{" "}
+                        <span className="font-medium text-foreground">
+                          {officials[officialId].full_name}
+                        </span>
+                      </>
+                    )}
+                    {jurisdiction && !officialId && (
+                      <>
+                        {" "}
+                        in{" "}
+                        <span className="font-medium text-foreground">
+                          {jurisdiction}
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </TableCell>
@@ -123,9 +124,7 @@ export function ConflictTable({
                 className="transition-colors hover:bg-muted/40"
               >
                 <TableCell>{jurisdictionMap[row.jurisdiction_id]}</TableCell>
-                <TableCell>
-                  {officials[row.official_id]?.full_name}
-                </TableCell>
+                <TableCell>{officials[row.official_id]?.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.year}
                 </TableCell>
@@ -133,9 +132,16 @@ export function ConflictTable({
                   {row.matched_interest}
                 </TableCell>
                 <TableCell>
-                  {row.pdf_url ? (<a href={row.pdf_url} className="text-primary truncate underline-offset-4 hover:underline">
-                    {row.pdf_url}
-                  </a>) : (<span className="text-muted-foreground">—</span>)}
+                  {row.pdf_url ? (
+                    <a
+                      href={row.pdf_url}
+                      className="truncate text-primary underline-offset-4 hover:underline"
+                    >
+                      {row.pdf_url}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-center">
                   <Tooltip>
@@ -149,7 +155,7 @@ export function ConflictTable({
                   <DeleteMatchDialog
                     matchId={row.id}
                     officialName={officials[row.official_id]?.full_name}
-                    onConfirm={handleDelete}
+                    onConfirm={onDeleteMatch}
                   />
                 </TableCell>
               </TableRow>
