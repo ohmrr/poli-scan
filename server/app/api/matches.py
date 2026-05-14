@@ -3,12 +3,14 @@ print("MATCHES FILE LOADED")
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from server.app.db import crud
 from server.app.db.connection import get_db
 from server.app.db.models import MatchResult, Jurisdiction
 from server.app.schemas.match import MatchResultResponse
-#added
+
+# added
 from fastapi import HTTPException
 
 router = APIRouter(
@@ -19,7 +21,14 @@ router = APIRouter(
 
 @router.get("", response_model=list[MatchResultResponse])
 async def get_matches(db: AsyncSession = Depends(get_db)):
-    return await db.scalars(select(MatchResult))
+    results = await db.scalars(
+        select(MatchResult).options(selectinload(MatchResult.official))
+    )
+    matches = results.all()
+    return [
+        {**m.__dict__, "full_name": m.official.full_name if m.official else ""}
+        for m in matches
+    ]
 
 
 @router.get("/official/{official_id}", response_model=list[MatchResultResponse])
@@ -44,21 +53,25 @@ async def get_matches_by_jurisdiction(
     jurisdiction_slug: str,
     db: AsyncSession = Depends(get_db),
 ):
-    return await db.scalars(
+    results = await db.scalars(
         select(MatchResult)
         .join(Jurisdiction, MatchResult.jurisdiction_id == Jurisdiction.id)
         .where(Jurisdiction.slug == jurisdiction_slug)
+        .options(selectinload(MatchResult.official))
     )
+    matches = results.all()
+    return [
+        {**m.__dict__, "full_name": m.official.full_name if m.official else ""}
+        for m in matches
+    ]
 
-#added
+
 @router.delete("/{match_id}")
 async def delete_match(
     match_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(MatchResult).where(MatchResult.id == match_id)
-    )
+    result = await db.execute(select(MatchResult).where(MatchResult.id == match_id))
     match = result.scalar_one_or_none()
 
     if not match:
