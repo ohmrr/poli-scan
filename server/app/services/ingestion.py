@@ -64,14 +64,13 @@ async def ingest_legistar(
             persons = await client.get_persons()
 
             for p in persons:
-                result = await db.execute(
+                existing = await db.scalar(
                     select(Official).where(
                         Official.jurisdiction_id == jurisdiction.id,
                         Official.first_name == p.first_name,
                         Official.last_name == p.last_name,
                     )
                 )
-                existing = result.scalars().first()
 
                 if existing and not existing.legistar_person_id:
                     existing.legistar_person_id = p.id
@@ -85,40 +84,127 @@ async def ingest_legistar(
             limit=limit, start_date=start_date, end_date=end_date
         )
 
+        events_seen = 0
+        items_seen = 0
+        attachments_seen = 0
+        votes_seen = 0
+
+        for item in scraped:
+            event = await crud.get_or_create_event(
+                db,
+                jurisdiction_id=jurisdiction.id,
+                legistar_event_id=item.event_id,
+                event_date=item.event_date,
+                body_name=item.body_name,
+            )
+            events_seen += 1
+
+            agenda_item = await crud.get_or_create_agenda_item(
+                db,
+                event_id=event.id,
+                matter_id=item.matter_id,
+                matter_type=item.matter_type,
+                title=item.title,
+                event_item_id=item.event_item_id,
+            )
+            items_seen += 1
+
+            if item.event_item_id:
+                raw_votes = await client.get_event_item_votes(item.event_item_id)
+                vote_rows = []
+                for v in raw_votes:
+                    person_id = v.get("VotePersonId")
+                    official_id = None
+                    if person_id:
+                        off_record = await db.scalar(
+                            select(Official).where(
+                                Official.jurisdiction_id == jurisdiction.id,
+                                Official.legistar_person_id == person_id,
+                            )
+                        )
+                        if off_record:
+                            official_id = off_record.id
+                    vote_rows.append(
+                        {
+                            "legistar_vote_id": v["VoteId"],
+                            "vote_value": v.get("VoteValueName", ""),
+                            "official_id": official_id,
+                        }
+                    )
+                await crud.bulk_insert_votes(db, agenda_item.id, vote_rows)
+                votes_seen += len(vote_rows)
+
+            for att in item.attachments:
+                await crud.get_or_create_attachment_items(
+                    db,
+                    agenda_item_id=agenda_item.id,
+                    name=att.get("name"),
+                    url=att.get("link"),
+                )
+                attachments_seen += 1
+
+        return {
+            "jurisdiction": jurisdiction_slug,
+            "events_processed": events_seen,
+            "agenda_items_processed": items_seen,
+            "attachments_processed": attachments_seen,
+            "votes_processed": votes_seen,
+        }
+
+
+async def ingest_santa_ana(
+    db: AsyncSession,
+    limit: int | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> dict:
+    from server.app.services.scrapers.nonlegistar_scraper import scrape_santa_ana
+
+    jurisdiction = await crud.get_or_create_jurisdiction(db, slug="santa-ana")
+    scraped = await scrape_santa_ana(limit=limit or 1)
+
+    meetings: dict = {}
+    for item in scraped:
+        tid = item.get("primegov_template_id")
+        meetings.setdefault(tid, []).append(item)
+
     events_seen = 0
     items_seen = 0
     attachments_seen = 0
 
-    for item in scraped:
+    for template_id, items in meetings.items():
+        first = items[0]
         event = await crud.get_or_create_event(
             db,
             jurisdiction_id=jurisdiction.id,
-            legistar_event_id=item.event_id,
-            event_date=item.event_date,
-            body_name=item.body_name,
+            legistar_event_id=template_id,
+            event_date=first["event_date"],
+            body_name=first["body_name"],
         )
         events_seen += 1
 
-        agenda_item = await crud.get_or_create_agenda_item(
-            db,
-            event_id=event.id,
-            matter_id=item.matter_id,
-            matter_type=item.matter_type,
-            title=item.title,
-        )
-        items_seen += 1
-
-        for att in item.attachments:
-            await crud.get_or_create_attachment_items(
+        for item in items:
+            matter_id = abs(hash(item["title"])) % (2**31 - 1)
+            agenda_item = await crud.get_or_create_agenda_item(
                 db,
-                agenda_item_id=agenda_item.id,
-                name=att.get("name"),
-                url=att.get("link"),
+                event_id=event.id,
+                matter_id=matter_id,
+                matter_type=item.get("matter_type"),
+                title=item["title"],
             )
-            attachments_seen += 1
+            items_seen += 1
+
+            for att in item.get("attachments", []):
+                await crud.get_or_create_attachment_items(
+                    db,
+                    agenda_item_id=agenda_item.id,
+                    name=att.get("name"),
+                    url=att.get("link"),
+                )
+                attachments_seen += 1
 
     return {
-        "jurisdiction": jurisdiction_slug,
+        "jurisdiction": "santa-ana",
         "events_processed": events_seen,
         "agenda_items_processed": items_seen,
         "attachments_processed": attachments_seen,

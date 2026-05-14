@@ -1,7 +1,6 @@
 import requests
 import json
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from urllib.parse import urljoin
 from datetime import datetime
 
@@ -86,35 +85,37 @@ def build_meeting_url(template_id) -> str:
     return f"{SANTA_ANA_BASE_URL}/Portal/Meeting?meetingTemplateId={template_id}"
 
 
-def fetch_page_html(url: str) -> str:
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+async def fetch_page_html(url: str) -> str:
+    from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
 
         try:
-            page.goto(url, wait_until="networkidle", timeout=60000)
-            page.wait_for_selector("div.meeting-item", timeout=30000)
+            await page.goto(url, wait_until="networkidle", timeout=60000)
+            await page.wait_for_selector("div.meeting-item", timeout=30000)
 
             agenda_items = page.locator("div.agenda-item")
-            count = agenda_items.count()
+            count = await agenda_items.count()
 
             for i in range(count):
                 try:
-                    agenda_items.nth(i).click(timeout=3000)
-                    page.wait_for_timeout(800)
+                    await agenda_items.nth(i).click(timeout=3000)
+                    await page.wait_for_timeout(800)
                 except Exception:
                     pass
 
-            return page.content()
+            return await page.content()
 
         except PlaywrightTimeoutError:
-            return page.content()
+            return await page.content()
 
         finally:
-            browser.close()
+            await browser.close()
 
 
-def scrape_santa_ana(limit: int = 5) -> list[dict]:
+async def scrape_santa_ana(limit: int = 5) -> list[dict]:
     meetings = get_santa_ana_meetings()
 
     meetings = sorted(
@@ -136,7 +137,7 @@ def scrape_santa_ana(limit: int = 5) -> list[dict]:
         meeting_url = build_meeting_url(agenda_template.get("id"))
         print("URL:", meeting_url)
 
-        html = fetch_page_html(meeting_url)
+        html = await fetch_page_html(meeting_url)
         html_lower = html.lower()
 
         if (
@@ -151,6 +152,7 @@ def scrape_santa_ana(limit: int = 5) -> list[dict]:
         for item in items:
             results.append({
                 "jurisdiction": "santa-ana",
+                "primegov_template_id": agenda_template.get("id"),
                 "event_date": meeting.get("dateTime"),
                 "body_name": meeting.get("title"),
                 "title": item["title"],

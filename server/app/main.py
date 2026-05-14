@@ -70,12 +70,6 @@ async def ingest_form700_endpoint(
     year: int,
     db: Session = Depends(get_db),
 ):
-    """
-    Parse the Form 700 CSV for a jurisdiction+year and store
-    officials + holdings in the database.
-
-    Expects a file at:  ./server/app/data/{client_name}-{year}.csv
-    """
     xlsx_path = f"./server/app/data/{client_name}-{year}.xlsx"
     csv_path = f"./server/app/data/{client_name}-{year}.csv"
     csv_path = xlsx_path if os.path.exists(xlsx_path) else csv_path
@@ -92,13 +86,6 @@ async def ingest_legistar_endpoint(
     end_date: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """
-    Scrape up to `limit` final events from Legistar and store
-    events + agenda items in the database.
-    Date filters:
-    - start_date: YYYY-MM-DD
-    - end_date: YYYY-MM-DD
-    """
     return await ingest_legistar(
         db,
         jurisdiction_slug=client_name,
@@ -107,6 +94,7 @@ async def ingest_legistar_endpoint(
         end_date=end_date,
     )
 
+
 @app.post("/ingest/santa-ana")
 async def ingest_santa_ana_endpoint(
     limit: int | None = 1,
@@ -114,10 +102,6 @@ async def ingest_santa_ana_endpoint(
     end_date: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """
-    Scrape Santa Ana City Council meetings from PrimeGov and store
-    events + agenda items in the database.
-    """
     return await ingest_santa_ana(
         db,
         limit=limit,
@@ -133,10 +117,6 @@ async def run_matching_engine_for_official_endpoint(
     year: int = 2019,
     db: Session = Depends(get_db),
 ):
-    """
-    Run the matching engine for a given official and return flagged matches.
-    """
-
     return await run_matching_engine_for_official(
         db, official_id, jurisdiction_slug, year
     )

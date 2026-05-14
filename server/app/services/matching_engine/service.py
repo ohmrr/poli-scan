@@ -28,7 +28,7 @@ async def run_matching_engine_for_official(
 
     if not official:
         return {"Error": "Official not found/invalid official_id"}
-    
+
     holdings_list = [
         {"entity_name": h.entity_name, "year": h.year}
         for h in official.holdings
@@ -37,7 +37,7 @@ async def run_matching_engine_for_official(
 
     if not holdings_list:
         return {"official_id": official.id, "official_name": official.full_name, "matches_found": 0, "matches": []}
-    
+
     official_dict = {
         "full_name": official.full_name,
         "position": official.position,
