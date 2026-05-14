@@ -58,6 +58,14 @@ ollama serve
 > [!NOTE]
 > On macOS, Linux, or WSL, Ollama may start automatically after installation. You can verify that it's running by visiting http://127.0.0.1:11434 in your browser.
 
+> [!WARNING]
+> **WSL2 users:** If Ollama is installed on Windows and your server runs inside WSL2, set `OLLAMA_HOST` before starting Ollama so WSL2 can reach it:
+> ```cmd
+> set OLLAMA_HOST=0.0.0.0
+> ollama serve
+> ```
+> Then find your Windows host IP from WSL2 with `cat /etc/resolv.conf | grep nameserver` and set `OLLAMA_BASE_URL=http://<that-ip>:11434` in your `.env`.
+
 ### 💾 Setting up Python Virtual Environment
 
 Create a virtual environment. You only have to do this once per system.
@@ -100,6 +108,14 @@ pip install -r server/requirements.txt
 > [!NOTE]
 > This ensures that we all use the same package versions.
 
+#### 🎭 Installing Playwright
+
+The Santa Ana scraper uses Playwright to load JavaScript-rendered meeting pages. After installing dependencies, run:
+
+```sh
+python -m playwright install chromium
+sudo $(which python) -m playwright install-deps
+```
 #### ⬇️ Adding New Dependencies
 
 Note that whenever you add a new package, update `requirement.txt`:
