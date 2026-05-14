@@ -5,6 +5,7 @@ from datetime import datetime
 class MatchResultResponse(BaseModel):
     id: int
     official_id: int
+    full_name: str
     jurisdiction_id: int
     agenda_item_id: int | None
     matched_interest: str

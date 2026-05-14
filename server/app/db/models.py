@@ -214,6 +214,7 @@ class MatchResult(Base):
     event_date: Mapped[str | None] = mapped_column(String(50))
     year: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    official: Mapped["Official"] = relationship("Official")
 
     def __repr__(self) -> str:
         return f"<MatchResult official_id={self.official_id} agenda_item_id={self.agenda_item_id} matched_interest={self.matched_interest!r}>"

@@ -292,6 +292,7 @@ async def save_match_result(
 async def get_matches_by_official(db: AsyncSession, official_id: int) -> list[MatchResult]:
     result = await db.execute(
         select(MatchResult)
+        .options(selectinload(MatchResult.official))
         .where(MatchResult.official_id == official_id)
     )
 
