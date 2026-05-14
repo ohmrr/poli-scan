@@ -1,5 +1,7 @@
 # 🔎 PoliScan
 
+![PoliScan Dashboard](./docs/poli-scan.png)
+
 To get started, ensure you have Git installed and clone the repository:
 
 ```sh
