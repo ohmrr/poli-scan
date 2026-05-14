@@ -14,6 +14,8 @@ import { getOfficialById } from "@/services/official"
 import { ConfidenceSlider } from "./components/ConfidenceSlider"
 import { ExportButton } from "./components/ExportButton"
 import { EmailReportButton } from "./components/EmailReportButton"
+import { IngestForm700Button } from "./components/IngestForm700Button"
+import { RunMatchingButton } from "./components/RunMatchingButton"
 
 const currentYear = new Date().getFullYear()
 const years = [...Array(10)].map((_, i) => currentYear - i)
@@ -153,6 +155,25 @@ export function App() {
             <ConfidenceSlider
               value={minConfidence}
               onChange={setMinConfidence}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col gap-4">
+            <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              Ingest
+            </p>
+
+            <IngestForm700Button
+              jurisdiction={jurisdiction}
+              startYear={startYear}
+            />
+
+            <RunMatchingButton
+              officialId={officialId}
+              jurisdictionSlug={jurisdiction}
+              year={startYear}
             />
           </div>
 
