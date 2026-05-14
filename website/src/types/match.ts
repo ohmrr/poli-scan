@@ -1,6 +1,7 @@
 export interface Match {
   id: number
   official_id: number
+  full_name: string
   jurisdiction_id: number
   agenda_item_id: number
   matched_interest: string
