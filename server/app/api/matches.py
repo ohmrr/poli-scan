@@ -27,7 +27,16 @@ async def get_matches_for_official(
     official_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    return await crud.get_matches_by_official(db, official_id)
+
+    matches = await crud.get_matches_by_official(db, official_id)
+
+    return [
+        {
+            **m.__dict__,
+            "full_name": m.official.full_name if m.official else None,
+        }
+        for m in matches
+    ]
 
 
 @router.get("/{jurisdiction_slug}", response_model=list[MatchResultResponse])
