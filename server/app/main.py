@@ -14,7 +14,11 @@ setup_logging()
 
 from server.app.api import agenda_items, events, jurisdictions, officials, matches
 from server.app.db.connection import get_db, init_db
-from server.app.services.ingestion import ingest_form700, ingest_legistar, ingest_santa_ana
+from server.app.services.ingestion import (
+    ingest_form700,
+    ingest_legistar,
+    ingest_santa_ana,
+)
 from server.app.services.matching_engine import llm_providers, matching_utils
 from server.app.services.matching_engine.service import run_matching_engine_for_official
 

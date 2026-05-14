@@ -16,6 +16,7 @@ import { ExportButton } from "./components/ExportButton"
 import { EmailReportButton } from "./components/EmailReportButton"
 import { IngestForm700Button } from "./components/IngestForm700Button"
 import { RunMatchingButton } from "./components/RunMatchingButton"
+import { jurisdictionPrettyName } from "./lib/utils"
 
 const currentYear = new Date().getFullYear()
 const years = [...Array(10)].map((_, i) => currentYear - i)
@@ -87,6 +88,16 @@ export function App() {
     [matches, officialId, startYear, endYear, minConfidence]
   )
 
+  const filteredOfficials = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(officials).filter(([, o]) =>
+          jurisdiction ? o.jurisdiction_slug === jurisdiction : true
+        )
+      ),
+    [officials, jurisdiction]
+  )
+
   const handleDeleteMatch = async (matchId: number) => {
     await deleteMatch(matchId)
     setMatches((prev) => prev.filter((m) => m.id !== matchId))
@@ -121,7 +132,7 @@ export function App() {
             />
 
             <OfficialDropdown
-              officials={officials}
+              officials={filteredOfficials}
               selectedId={officialId}
               onSelect={(val) => setOfficialId(val)}
             />
@@ -229,7 +240,7 @@ export function App() {
                   {" "}
                   in{" "}
                   <span className="font-medium text-foreground">
-                    {jurisdiction}
+                    {jurisdictionPrettyName(jurisdiction)}
                   </span>
                 </>
               )}{" "}

@@ -125,14 +125,13 @@ export function ConflictTable({
                       {jurisdictionMap[row.jurisdiction_id]}
                     </TableCell>
                     <TableCell>
-                      {official ? (
-                        <button
-                          onClick={() => setSelectedOfficial(official)}
-                          className="cursor-pointer text-left text-primary underline-offset-4 hover:underline"
-                        >
-                          {official.full_name}
-                        </button>
-                      ) : null}
+                      <button
+                        onClick={() => setSelectedOfficial(official ?? null)}
+                        className="cursor-pointer text-left text-primary underline-offset-4 hover:underline"
+                        disabled={!official}
+                      >
+                        {row.full_name}
+                      </button>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {row.year}
